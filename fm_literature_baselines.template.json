@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "metric": "MSE",
+    "instructions": "Copy this file to fm_literature_baselines.json and fill in published zero-shot numbers for Chronos/TimesFM/Moirai (or others) on the datasets we hold out for zero-shot eval (ETTm2, Weather, Exchange, ECL, Traffic). Pull exact figures from the papers/their result tables — do not guess or transcribe from memory. Leave a cell as null if the paper doesn't report that (dataset, horizon) pair. Add a 'citation' string per model so the paper can cite it precisely.",
+    "citations": {
+      "Chronos": "TODO: e.g. Ansari et al. 2024, 'Chronos: Learning the Language of Time Series', arXiv:2403.07815",
+      "TimesFM": "TODO: e.g. Das et al. 2024, 'A decoder-only foundation model for time-series forecasting', ICML 2024",
+      "Moirai":  "TODO: e.g. Woo et al. 2024, 'Unified Training of Universal Time Series Forecasting Transformers', ICML 2024"
+    }
+  },
+  "datasets": {
+    "ETTm2":    { "models": {} },
+    "Weather":  { "models": {} },
+    "Exchange": { "models": {} },
+    "ECL":      { "models": {} },
+    "Traffic":  { "models": {} }
+  }
+}

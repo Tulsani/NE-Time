@@ -114,12 +114,78 @@ class CSVLogger:
 #  Training
 # ─────────────────────────────────────────────────────────
 
+def build_optimizer_and_scheduler(model: HyperTimeV2, args, steps_per_epoch: int):
+    """
+    Build the AdamW optimizer (3 param groups: decay / no_decay / curvature)
+    and cosine-warmup LR scheduler shared by Trainer and any multi-dataset
+    training loop (e.g. train_foundation.py).
+
+    Param groups:
+      decay       — weights (LinearLayer.weight, conv kernels, …)
+      no_decay    — norms, biases, affine params
+      curvature   — CurvatureParam.raw_c  (small dedicated weight decay
+                    to prevent geometry from drifting in the long tail)
+    """
+    decay_params     = []
+    no_decay_params  = []
+    curvature_params = []
+
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        # Check if this param lives inside a CurvatureParam module
+        # by walking the module tree to find its owner
+        is_curv = False
+        for mod_name, mod in model.named_modules():
+            if hasattr(mod, 'is_curvature') and mod.is_curvature:
+                # Check if p is raw_c of this module
+                for pname, pp in mod.named_parameters(recurse=False):
+                    if pp is p:
+                        is_curv = True
+                        break
+            if is_curv:
+                break
+
+        if is_curv:
+            curvature_params.append(p)
+        elif 'norm' in name or 'bias' in name or 'gamma' in name or 'beta' in name:
+            no_decay_params.append(p)
+        else:
+            decay_params.append(p)
+
+    curvature_wd = getattr(args, 'curvature_wd', 1e-3)
+
+    optimizer = optim.AdamW([
+        {'params': decay_params,     'weight_decay': args.weight_decay},
+        {'params': no_decay_params,  'weight_decay': 0.0},
+        {'params': curvature_params, 'weight_decay': curvature_wd,
+         'lr': args.lr * 0.1},   # lower LR for curvature too
+    ], lr=args.lr)
+
+    total_steps  = args.epochs * steps_per_epoch
+    warmup_steps = args.warmup_epochs * steps_per_epoch
+    scheduler    = cosine_warmup_schedule(optimizer, warmup_steps, total_steps)
+
+    n_decay = sum(p.numel() for p in decay_params)
+    n_no_decay = sum(p.numel() for p in no_decay_params)
+    n_curv = sum(p.numel() for p in curvature_params)
+    print(f"\nParam groups:")
+    print(f"  decay        {n_decay:>8,}  (wd={args.weight_decay})")
+    print(f"  no_decay     {n_no_decay:>8,}  (wd=0)")
+    print(f"  curvature    {n_curv:>8,}  (wd={curvature_wd}, lr×0.1)")
+
+    return optimizer, scheduler
+
+
 class Trainer:
 
     def __init__(self, model: HyperTimeV2, args):
         self.model  = model
         self.args   = args
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else
+            'mps'  if torch.backends.mps.is_available() else
+            'cpu')
         self.model.to(self.device)
 
         self.train_loader, self.val_loader, self.test_loader, self.scaler = \
@@ -135,52 +201,9 @@ class Trainer:
 
         self.criterion = HorizonWeightedLoss(mse_weight=0.7, mae_weight=0.3)
 
-        # ── Param groups ─────────────────────────────────
-        # Three buckets:
-        #   decay       — weights (LinearLayer.weight, conv kernels, …)
-        #   no_decay    — norms, biases, affine params
-        #   curvature   — CurvatureParam.raw_c  (small dedicated weight decay
-        #                 to prevent geometry from drifting in the long tail)
-        decay_params     = []
-        no_decay_params  = []
-        curvature_params = []
-
-        for name, p in model.named_parameters():
-            if not p.requires_grad:
-                continue
-            # Check if this param lives inside a CurvatureParam module
-            # by walking the module tree to find its owner
-            is_curv = False
-            for mod_name, mod in model.named_modules():
-                if hasattr(mod, 'is_curvature') and mod.is_curvature:
-                    # Check if p is raw_c of this module
-                    for pname, pp in mod.named_parameters(recurse=False):
-                        if pp is p:
-                            is_curv = True
-                            break
-                if is_curv:
-                    break
-
-            if is_curv:
-                curvature_params.append(p)
-            elif 'norm' in name or 'bias' in name or 'gamma' in name or 'beta' in name:
-                no_decay_params.append(p)
-            else:
-                decay_params.append(p)
-
-        curvature_wd = getattr(args, 'curvature_wd', 1e-3)
-
-        self.optimizer = optim.AdamW([
-            {'params': decay_params,     'weight_decay': args.weight_decay},
-            {'params': no_decay_params,  'weight_decay': 0.0},
-            {'params': curvature_params, 'weight_decay': curvature_wd,
-             'lr': args.lr * 0.1},   # lower LR for curvature too
-        ], lr=args.lr)
-
         steps_per_epoch = len(self.train_loader)
-        total_steps     = args.epochs * steps_per_epoch
-        warmup_steps    = args.warmup_epochs * steps_per_epoch
-        self.scheduler  = cosine_warmup_schedule(self.optimizer, warmup_steps, total_steps)
+        self.optimizer, self.scheduler = build_optimizer_and_scheduler(
+            model, args, steps_per_epoch)
 
         self.early_stop = EarlyStopping(patience=args.patience)
 
@@ -194,14 +217,6 @@ class Trainer:
         for k, v in params.items():
             if k != 'TOTAL':
                 print(f"  {k:<20} {v:>8,}")
-
-        n_decay = sum(p.numel() for p in decay_params)
-        n_no_decay = sum(p.numel() for p in no_decay_params)
-        n_curv = sum(p.numel() for p in curvature_params)
-        print(f"\nParam groups:")
-        print(f"  decay        {n_decay:>8,}  (wd={args.weight_decay})")
-        print(f"  no_decay     {n_no_decay:>8,}  (wd=0)")
-        print(f"  curvature    {n_curv:>8,}  (wd={curvature_wd}, lr×0.1)")
 
     # ── Train one epoch ──────────────────────────────────
 
@@ -286,11 +301,7 @@ class Trainer:
                 n += mask.sum().item()
 
             if n > 0:
-                if n > 0:
                 losses.append(batch_loss / n)
-
-        if not losses:
-            return float('inf')
 
         if not losses:
             return float('inf')

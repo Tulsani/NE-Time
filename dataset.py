@@ -210,7 +210,7 @@ class TimeSeriesDataset(Dataset):
         self.data = self.scaler.transform(raw).astype(np.float32)
 
         max_start = len(self.data) - seq_len - self.max_h
-        self.indices = list(range(0, max(0, max_start) + 1, stride))
+        self.indices = list(range(0, max_start + 1, stride)) if max_start >= 0 else []
 
     def __len__(self):
         return len(self.indices) * len(self.horizons)
@@ -292,7 +292,7 @@ def create_dataloaders(
     # Rebuild indices after data replacement
     for ds in [val_ds, test_ds]:
         max_start = len(ds.data) - seq_len - max(horizons)
-        ds.indices = list(range(0, max(0, max_start) + 1, 1))
+        ds.indices = list(range(0, max_start + 1, 1)) if max_start >= 0 else []
 
     train_loader = DataLoader(
         train_ds, batch_size=batch_size, shuffle=True,

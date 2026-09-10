@@ -38,7 +38,7 @@ def logmap0(x: torch.Tensor, c: torch.Tensor, eps: float = 1e-5) -> torch.Tensor
     x_norm = x.norm(dim=-1, keepdim=True).clamp(min=eps)
     arctanh_input = (sqrt_c * x_norm).clamp(max=1.0 - eps)
     atanh_term = torch.atanh(arctanh_input)
-    return (2.0 / sqrt_c) * (atanh_term / x_norm) * x
+    return (1.0 / sqrt_c) * (atanh_term / x_norm) * x
 
 
 def mobius_add(x: torch.Tensor, y: torch.Tensor, c: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:

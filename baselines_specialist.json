@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "metric": "MSE",
+    "source": "ne-time-results.png (repo root) — transcribed by hand from the visible table",
+    "note": "Only rows actually visible in the screenshot are included. The legend also lists a 'TimeMixer' series and the workshop plan expects Exchange as a zero-shot dataset, but neither has visible numeric rows in ne-time-results.png — add them here manually (with a source citation) if/when available. Do not let benchmark_report.py silently fabricate missing baseline cells.",
+    "seq_len_note": "NE-Time specialist numbers here use each dataset's own tuned seq_len from the benchmark shell scripts (512 for ETTm1/ETTm2, 336 for everything else) — the foundation model instead uses a single shared seq_len=336 for all datasets, so ETTm1/ETTm2 foundation-vs-specialist comparisons carry a small context-length handicap, not an apples-to-apples one. Disclose this in the paper."
+  },
+  "datasets": {
+    "ETTh1": {
+      "variates": 7,
+      "models": {
+        "NE-Time":   {"96": 0.443, "192": 0.490, "336": 0.542, "720": 0.703, "avg": 0.545},
+        "PatchTST":  {"96": 0.370, "192": 0.413, "336": 0.422, "720": 0.447, "avg": 0.413}
+      }
+    },
+    "ETTh2": {
+      "variates": 7,
+      "models": {
+        "NE-Time":   {"96": 0.148, "192": 0.171, "336": 0.187, "720": 0.230, "avg": 0.184},
+        "PatchTST":  {"96": 0.274, "192": 0.341, "336": 0.329, "720": 0.379, "avg": 0.331}
+      }
+    },
+    "ETTm1": {
+      "variates": 7,
+      "models": {
+        "NE-Time":   {"96": 0.330, "192": 0.376, "336": 0.426, "720": 0.472, "avg": 0.401},
+        "PatchTST":  {"96": 0.293, "192": 0.333, "336": 0.369, "720": 0.416, "avg": 0.353}
+      }
+    },
+    "ETTm2": {
+      "variates": 7,
+      "models": {
+        "NE-Time":   {"96": 0.120, "192": 0.142, "336": 0.164, "720": 0.198, "avg": 0.156},
+        "PatchTST":  {"96": 0.175, "192": 0.241, "336": 0.305, "720": 0.402, "avg": 0.281}
+      }
+    },
+    "Weather": {
+      "variates": 21,
+      "models": {
+        "NE-Time":      {"96": 0.150, "192": 0.195, "336": 0.253, "720": 0.334, "avg": 0.233},
+        "PatchTST":     {"96": 0.177, "192": 0.261, "336": 0.339, "720": 0.422, "avg": 0.300},
+        "iTransformer": {"96": 0.174, "192": 0.221, "336": 0.278, "720": 0.358, "avg": 0.258}
+      }
+    },
+    "ECL": {
+      "variates": 321,
+      "models": {
+        "NE-Time":      {"96": 0.151, "192": 0.162, "336": 0.173, "720": 0.214, "avg": 0.175},
+        "PatchTST":     {"96": 0.195, "192": 0.199, "336": 0.215, "720": 0.256, "avg": 0.216},
+        "iTransformer": {"96": 0.148, "192": 0.162, "336": 0.178, "720": 0.225, "avg": 0.178}
+      }
+    },
+    "Traffic": {
+      "variates": 862,
+      "models": {
+        "NE-Time":      {"96": 0.398, "192": 0.420, "336": null, "720": null, "avg": null},
+        "PatchTST":     {"96": 0.462, "192": 0.466, "336": 0.482, "720": 0.514, "avg": 0.481},
+        "iTransformer": {"96": 0.395, "192": 0.414, "336": 0.428, "720": 0.456, "avg": 0.423}
+      }
+    }
+  }
+}
