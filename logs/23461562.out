@@ -1,0 +1,949 @@
+================================================
+Job ID:           23461562
+Node:             a100-4002
+Project dir:      /gpfs/scratch/an4462/at6646/ne-time-v2
+Dataset:          ETTm1
+Model size:       medium
+Mode:             per-horizon+CI (SOTA comparison)
+Seq len:          512
+Batch size:       64
+LR:               1e-3
+Patience:         15
+Exp name:         netime_ETTm1_medium_perH_CI
+--- overfitting fixes ---
+geo_dropout:      0.2
+hyp_hidden_scale: 1.0
+curvature_wd:     1e-3
+Start time:       Mon Jun  1 10:54:28 EDT 2026
+================================================
+NVIDIA A100 80GB PCIe, 81920 MiB
+
+Python:     3.10.20
+PyTorch:    2.2.0+cu121
+CUDA:       True
+GPU:        NVIDIA A100 80GB PCIe
+VRAM:       85.1 GB
+
+Starting training (per-horizon+CI (SOTA comparison))...
+Downloading ETTm1 from https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTm1.csv ...
+Saved to /gpfs/scratch/an4462/at6646/ne-time-v2/data/ETTm1.csv
+Input dim: 7
+
+Mode: per-horizon + CI (SOTA benchmark comparison)
+
+=======================================================
+Per-horizon training: H=96
+=======================================================
+Loaded ETTm1: shape=(69680, 7)
+Train: 24085 samples (376 batches)
+Val:   6361 samples (100 batches)
+Test:  13329 samples (209 batches)
+
+Device: cuda
+Total parameters: 258,586
+  revin                       2
+  patch_embed            10,496
+  decomposer                  0
+  curvatures                  4
+  hyp_encoders          125,379
+  horizon_enc            25,539
+  hyp_decoder            24,961
+  temporal_proj          55,312
+  out_proj               16,897
+
+Param groups:
+  decay         254,592  (wd=0.0001)
+  no_decay        3,990  (wd=0)
+  curvature           4  (wd=0.001, lr×0.1)
+
+=======================================================
+Training: netime_ETTm1_medium_perH_CI_CI_H96
+=======================================================
+  [1:50/376]  loss=0.57632  grad=0.115  lr=2.66e-05
+  [1:100/376]  loss=0.45540  grad=0.732  lr=5.32e-05
+  [1:150/376]  loss=0.33621  grad=0.638  lr=7.98e-05
+  [1:200/376]  loss=0.35294  grad=0.903  lr=1.06e-04
+  [1:250/376]  loss=0.33043  grad=0.562  lr=1.33e-04
+  [1:300/376]  loss=0.36151  grad=0.715  lr=1.60e-04
+  [1:350/376]  loss=0.37231  grad=0.753  lr=1.86e-04
+Epoch 1 — train loss: 0.39518  (10.0s)
+Epoch 1 — val   loss: 0.34603
+  ✓ Saved checkpoint (val_loss=0.34603)
+  [2:50/376]  loss=0.32076  grad=0.656  lr=2.27e-04
+  [2:100/376]  loss=0.31219  grad=0.696  lr=2.53e-04
+  [2:150/376]  loss=0.32990  grad=0.665  lr=2.80e-04
+  [2:200/376]  loss=0.30763  grad=0.676  lr=3.06e-04
+  [2:250/376]  loss=0.29355  grad=0.804  lr=3.33e-04
+  [2:300/376]  loss=0.28473  grad=0.702  lr=3.60e-04
+  [2:350/376]  loss=0.30225  grad=0.542  lr=3.86e-04
+Epoch 2 — train loss: 0.30872  (8.9s)
+Epoch 2 — val   loss: 0.32672
+  ✓ Saved checkpoint (val_loss=0.32672)
+  [3:50/376]  loss=0.29846  grad=0.468  lr=4.27e-04
+  [3:100/376]  loss=0.30015  grad=0.632  lr=4.53e-04
+  [3:150/376]  loss=0.28689  grad=0.400  lr=4.80e-04
+  [3:200/376]  loss=0.29682  grad=1.071  lr=5.06e-04
+  [3:250/376]  loss=0.25253  grad=0.730  lr=5.33e-04
+  [3:300/376]  loss=0.27800  grad=0.435  lr=5.60e-04
+  [3:350/376]  loss=0.30313  grad=1.120  lr=5.86e-04
+Epoch 3 — train loss: 0.29227  (8.9s)
+Epoch 3 — val   loss: 0.31302
+  ✓ Saved checkpoint (val_loss=0.31302)
+  [4:50/376]  loss=0.29173  grad=0.688  lr=6.27e-04
+  [4:100/376]  loss=0.33840  grad=0.896  lr=6.53e-04
+  [4:150/376]  loss=0.28677  grad=0.750  lr=6.80e-04
+  [4:200/376]  loss=0.28281  grad=0.775  lr=7.06e-04
+  [4:250/376]  loss=0.22720  grad=0.357  lr=7.33e-04
+  [4:300/376]  loss=0.28272  grad=0.956  lr=7.60e-04
+  [4:350/376]  loss=0.25493  grad=0.480  lr=7.86e-04
+Epoch 4 — train loss: 0.27926  (8.9s)
+Epoch 4 — val   loss: 0.31213
+  ✓ Saved checkpoint (val_loss=0.31213)
+  [5:50/376]  loss=0.27820  grad=0.493  lr=8.27e-04
+  [5:100/376]  loss=0.24273  grad=0.501  lr=8.53e-04
+  [5:150/376]  loss=0.28287  grad=1.219  lr=8.80e-04
+  [5:200/376]  loss=0.33045  grad=0.958  lr=9.06e-04
+  [5:250/376]  loss=0.27150  grad=1.062  lr=9.33e-04
+  [5:300/376]  loss=0.25349  grad=1.516  lr=9.60e-04
+  [5:350/376]  loss=0.26253  grad=0.570  lr=9.86e-04
+Epoch 5 — train loss: 0.27574  (8.9s)
+Epoch 5 — val   loss: 0.29345
+  ✓ Saved checkpoint (val_loss=0.29345)
+  [6:50/376]  loss=0.28835  grad=2.004  lr=1.00e-03
+  [6:100/376]  loss=0.25952  grad=0.522  lr=1.00e-03
+  [6:150/376]  loss=0.27971  grad=0.702  lr=1.00e-03
+  [6:200/376]  loss=0.25615  grad=0.738  lr=1.00e-03
+  [6:250/376]  loss=0.27013  grad=0.380  lr=9.99e-04
+  [6:300/376]  loss=0.25677  grad=1.108  lr=9.99e-04
+  [6:350/376]  loss=0.24179  grad=0.626  lr=9.99e-04
+Epoch 6 — train loss: 0.27022  (8.9s)
+Epoch 6 — val   loss: 0.31200
+  [7:50/376]  loss=0.34195  grad=0.542  lr=9.98e-04
+  [7:100/376]  loss=0.27850  grad=1.120  lr=9.98e-04
+  [7:150/376]  loss=0.28358  grad=0.820  lr=9.98e-04
+  [7:200/376]  loss=0.27086  grad=0.909  lr=9.97e-04
+  [7:250/376]  loss=0.31361  grad=6.348  lr=9.97e-04
+  [7:300/376]  loss=0.27389  grad=0.784  lr=9.96e-04
+  [7:350/376]  loss=0.26183  grad=0.423  lr=9.95e-04
+Epoch 7 — train loss: 0.26626  (8.9s)
+Epoch 7 — val   loss: 0.29362
+  [8:50/376]  loss=0.28614  grad=0.719  lr=9.94e-04
+  [8:100/376]  loss=0.23221  grad=0.566  lr=9.94e-04
+  [8:150/376]  loss=0.27456  grad=1.268  lr=9.93e-04
+  [8:200/376]  loss=0.23807  grad=0.378  lr=9.92e-04
+  [8:250/376]  loss=0.27094  grad=0.613  lr=9.91e-04
+  [8:300/376]  loss=0.27897  grad=0.572  lr=9.90e-04
+  [8:350/376]  loss=0.26380  grad=0.654  lr=9.90e-04
+Epoch 8 — train loss: 0.26253  (8.9s)
+Epoch 8 — val   loss: 0.29802
+  [9:50/376]  loss=0.29259  grad=1.014  lr=9.88e-04
+  [9:100/376]  loss=0.26865  grad=1.028  lr=9.87e-04
+  [9:150/376]  loss=0.28662  grad=0.823  lr=9.86e-04
+  [9:200/376]  loss=0.30146  grad=0.597  lr=9.85e-04
+  [9:250/376]  loss=0.22190  grad=0.393  lr=9.84e-04
+  [9:300/376]  loss=0.23720  grad=0.643  lr=9.83e-04
+  [9:350/376]  loss=0.24300  grad=0.470  lr=9.81e-04
+Epoch 9 — train loss: 0.25859  (8.9s)
+Epoch 9 — val   loss: 0.29927
+  [10:50/376]  loss=0.23484  grad=0.675  lr=9.79e-04
+  [10:100/376]  loss=0.29418  grad=0.603  lr=9.78e-04
+  [10:150/376]  loss=0.22817  grad=0.416  lr=9.77e-04
+  [10:200/376]  loss=0.24712  grad=1.343  lr=9.75e-04
+  [10:250/376]  loss=0.22421  grad=0.683  lr=9.74e-04
+  [10:300/376]  loss=0.28771  grad=1.012  lr=9.72e-04
+  [10:350/376]  loss=0.27611  grad=0.791  lr=9.71e-04
+Epoch 10 — train loss: 0.25575  (8.9s)
+Epoch 10 — val   loss: 0.29795
+  [11:50/376]  loss=0.23121  grad=0.393  lr=9.68e-04
+  [11:100/376]  loss=0.26377  grad=0.264  lr=9.67e-04
+  [11:150/376]  loss=0.24103  grad=0.673  lr=9.65e-04
+  [11:200/376]  loss=0.28660  grad=0.506  lr=9.63e-04
+  [11:250/376]  loss=0.27451  grad=0.608  lr=9.61e-04
+  [11:300/376]  loss=0.26036  grad=0.503  lr=9.60e-04
+  [11:350/376]  loss=0.30254  grad=0.287  lr=9.58e-04
+Epoch 11 — train loss: 0.25169  (8.9s)
+Epoch 11 — val   loss: 0.31878
+  [12:50/376]  loss=0.24672  grad=0.377  lr=9.55e-04
+  [12:100/376]  loss=0.23598  grad=0.489  lr=9.53e-04
+  [12:150/376]  loss=0.25389  grad=0.622  lr=9.51e-04
+  [12:200/376]  loss=0.24126  grad=1.041  lr=9.49e-04
+  [12:250/376]  loss=0.22306  grad=0.640  lr=9.47e-04
+  [12:300/376]  loss=0.21937  grad=0.569  lr=9.45e-04
+  [12:350/376]  loss=0.23024  grad=0.584  lr=9.43e-04
+Epoch 12 — train loss: 0.24884  (8.9s)
+Epoch 12 — val   loss: 0.31571
+  [13:50/376]  loss=0.24153  grad=0.466  lr=9.39e-04
+  [13:100/376]  loss=0.26212  grad=0.774  lr=9.37e-04
+  [13:150/376]  loss=0.23648  grad=0.395  lr=9.35e-04
+  [13:200/376]  loss=0.21739  grad=0.482  lr=9.32e-04
+  [13:250/376]  loss=0.23923  grad=0.352  lr=9.30e-04
+  [13:300/376]  loss=0.27880  grad=0.580  lr=9.28e-04
+  [13:350/376]  loss=0.23323  grad=0.583  lr=9.25e-04
+Epoch 13 — train loss: 0.24595  (8.9s)
+Epoch 13 — val   loss: 0.32395
+  [14:50/376]  loss=0.24509  grad=0.452  lr=9.22e-04
+  [14:100/376]  loss=0.23421  grad=0.407  lr=9.19e-04
+  [14:150/376]  loss=0.22630  grad=0.707  lr=9.16e-04
+  [14:200/376]  loss=0.24769  grad=0.394  lr=9.14e-04
+  [14:250/376]  loss=0.27262  grad=0.565  lr=9.11e-04
+  [14:300/376]  loss=0.24585  grad=0.511  lr=9.09e-04
+  [14:350/376]  loss=0.24835  grad=0.691  lr=9.06e-04
+Epoch 14 — train loss: 0.24227  (8.9s)
+Epoch 14 — val   loss: 0.31108
+  [15:50/376]  loss=0.22415  grad=0.315  lr=9.02e-04
+  [15:100/376]  loss=0.27329  grad=0.545  lr=8.99e-04
+  [15:150/376]  loss=0.22552  grad=0.217  lr=8.96e-04
+  [15:200/376]  loss=0.23918  grad=0.785  lr=8.93e-04
+  [15:250/376]  loss=0.25009  grad=0.402  lr=8.90e-04
+  [15:300/376]  loss=0.22504  grad=0.351  lr=8.88e-04
+  [15:350/376]  loss=0.24086  grad=0.576  lr=8.85e-04
+Epoch 15 — train loss: 0.23832  (8.9s)
+Epoch 15 — val   loss: 0.36079
+  [16:50/376]  loss=0.25633  grad=0.310  lr=8.80e-04
+  [16:100/376]  loss=0.25298  grad=0.405  lr=8.77e-04
+  [16:150/376]  loss=0.19434  grad=0.282  lr=8.74e-04
+  [16:200/376]  loss=0.22937  grad=0.336  lr=8.71e-04
+  [16:250/376]  loss=0.19554  grad=0.328  lr=8.68e-04
+  [16:300/376]  loss=0.21222  grad=0.359  lr=8.65e-04
+  [16:350/376]  loss=0.21957  grad=0.494  lr=8.61e-04
+Epoch 16 — train loss: 0.23532  (8.9s)
+Epoch 16 — val   loss: 0.31718
+  [17:50/376]  loss=0.25071  grad=0.677  lr=8.56e-04
+  [17:100/376]  loss=0.23574  grad=0.469  lr=8.53e-04
+  [17:150/376]  loss=0.22776  grad=0.305  lr=8.50e-04
+  [17:200/376]  loss=0.22051  grad=0.532  lr=8.47e-04
+  [17:250/376]  loss=0.20767  grad=0.441  lr=8.43e-04
+  [17:300/376]  loss=0.21850  grad=0.441  lr=8.40e-04
+  [17:350/376]  loss=0.20458  grad=0.390  lr=8.36e-04
+Epoch 17 — train loss: 0.23175  (8.9s)
+Epoch 17 — val   loss: 0.32999
+  [18:50/376]  loss=0.22639  grad=0.406  lr=8.31e-04
+  [18:100/376]  loss=0.24919  grad=0.480  lr=8.28e-04
+  [18:150/376]  loss=0.23486  grad=0.393  lr=8.24e-04
+  [18:200/376]  loss=0.22013  grad=0.387  lr=8.21e-04
+  [18:250/376]  loss=0.19163  grad=0.320  lr=8.17e-04
+  [18:300/376]  loss=0.20966  grad=0.328  lr=8.13e-04
+  [18:350/376]  loss=0.22866  grad=0.404  lr=8.10e-04
+Epoch 18 — train loss: 0.22834  (8.9s)
+Epoch 18 — val   loss: 0.33767
+  [19:50/376]  loss=0.18505  grad=0.320  lr=8.04e-04
+  [19:100/376]  loss=0.22725  grad=0.522  lr=8.00e-04
+  [19:150/376]  loss=0.20658  grad=0.380  lr=7.97e-04
+  [19:200/376]  loss=0.27639  grad=0.324  lr=7.93e-04
+  [19:250/376]  loss=0.22685  grad=0.319  lr=7.89e-04
+  [19:300/376]  loss=0.19955  grad=0.259  lr=7.85e-04
+  [19:350/376]  loss=0.22526  grad=0.320  lr=7.82e-04
+Epoch 19 — train loss: 0.22516  (8.9s)
+Epoch 19 — val   loss: 0.33809
+  [20:50/376]  loss=0.22477  grad=0.396  lr=7.76e-04
+  [20:100/376]  loss=0.22198  grad=0.347  lr=7.72e-04
+  [20:150/376]  loss=0.21440  grad=0.439  lr=7.68e-04
+  [20:200/376]  loss=0.23860  grad=0.284  lr=7.64e-04
+  [20:250/376]  loss=0.21817  grad=0.419  lr=7.60e-04
+  [20:300/376]  loss=0.26138  grad=0.440  lr=7.56e-04
+  [20:350/376]  loss=0.20311  grad=0.366  lr=7.52e-04
+Epoch 20 — train loss: 0.22281  (8.9s)
+Epoch 20 — val   loss: 0.33030
+Early stopping at epoch 20
+
+=======================================================
+Loading best checkpoint for testing...
+Best checkpoint: epoch=5, val_loss=0.29345
+
+Test results:
+  H=  96  MSE=0.32953  MAE=0.38127  RMSE=0.57404
+
+Results saved to /gpfs/scratch/an4462/at6646/ne-time-v2/outputs/netime_ETTm1_medium_perH_CI_CI_H96_results.json
+  H=  96  MSE=0.32953  MAE=0.38127
+
+=======================================================
+Per-horizon training: H=192
+=======================================================
+Loaded ETTm1: shape=(69680, 7)
+Train: 24037 samples (375 batches)
+Val:   6265 samples (98 batches)
+Test:  13233 samples (207 batches)
+
+Device: cuda
+Total parameters: 258,586
+  revin                       2
+  patch_embed            10,496
+  decomposer                  0
+  curvatures                  4
+  hyp_encoders          125,379
+  horizon_enc            25,539
+  hyp_decoder            24,961
+  temporal_proj          55,312
+  out_proj               16,897
+
+Param groups:
+  decay         254,592  (wd=0.0001)
+  no_decay        3,990  (wd=0)
+  curvature           4  (wd=0.001, lr×0.1)
+
+=======================================================
+Training: netime_ETTm1_medium_perH_CI_CI_H192
+=======================================================
+  [1:50/375]  loss=0.58738  grad=0.140  lr=2.67e-05
+  [1:100/375]  loss=0.52319  grad=0.404  lr=5.33e-05
+  [1:150/375]  loss=0.38713  grad=2.110  lr=8.00e-05
+  [1:200/375]  loss=0.37841  grad=0.967  lr=1.07e-04
+  [1:250/375]  loss=0.39298  grad=0.799  lr=1.33e-04
+  [1:300/375]  loss=0.29403  grad=0.865  lr=1.60e-04
+  [1:350/375]  loss=0.36095  grad=0.655  lr=1.87e-04
+Epoch 1 — train loss: 0.43515  (9.3s)
+Epoch 1 — val   loss: 0.36868
+  ✓ Saved checkpoint (val_loss=0.36868)
+  [2:50/375]  loss=0.43882  grad=1.043  lr=2.27e-04
+  [2:100/375]  loss=0.30173  grad=0.485  lr=2.53e-04
+  [2:150/375]  loss=0.33955  grad=0.652  lr=2.80e-04
+  [2:200/375]  loss=0.34653  grad=0.500  lr=3.07e-04
+  [2:250/375]  loss=0.34462  grad=0.588  lr=3.33e-04
+  [2:300/375]  loss=0.32570  grad=0.428  lr=3.60e-04
+  [2:350/375]  loss=0.30539  grad=0.614  lr=3.87e-04
+Epoch 2 — train loss: 0.34132  (9.2s)
+Epoch 2 — val   loss: 0.35883
+  ✓ Saved checkpoint (val_loss=0.35883)
+  [3:50/375]  loss=0.34243  grad=0.534  lr=4.27e-04
+  [3:100/375]  loss=0.28649  grad=0.385  lr=4.53e-04
+  [3:150/375]  loss=0.30171  grad=0.836  lr=4.80e-04
+  [3:200/375]  loss=0.35785  grad=0.798  lr=5.07e-04
+  [3:250/375]  loss=0.30623  grad=0.457  lr=5.33e-04
+  [3:300/375]  loss=0.36530  grad=0.584  lr=5.60e-04
+  [3:350/375]  loss=0.33644  grad=0.761  lr=5.87e-04
+Epoch 3 — train loss: 0.32648  (9.2s)
+Epoch 3 — val   loss: 0.34561
+  ✓ Saved checkpoint (val_loss=0.34561)
+  [4:50/375]  loss=0.34083  grad=0.597  lr=6.27e-04
+  [4:100/375]  loss=0.33680  grad=0.564  lr=6.53e-04
+  [4:150/375]  loss=0.29095  grad=0.943  lr=6.80e-04
+  [4:200/375]  loss=0.34596  grad=0.473  lr=7.07e-04
+  [4:250/375]  loss=0.33418  grad=0.698  lr=7.33e-04
+  [4:300/375]  loss=0.31837  grad=0.410  lr=7.60e-04
+  [4:350/375]  loss=0.27868  grad=0.518  lr=7.87e-04
+Epoch 4 — train loss: 0.31873  (9.2s)
+Epoch 4 — val   loss: 0.34522
+  ✓ Saved checkpoint (val_loss=0.34522)
+  [5:50/375]  loss=0.36849  grad=0.520  lr=8.27e-04
+  [5:100/375]  loss=0.34193  grad=2.463  lr=8.53e-04
+  [5:150/375]  loss=0.31749  grad=1.469  lr=8.80e-04
+  [5:200/375]  loss=0.32317  grad=0.739  lr=9.07e-04
+  [5:250/375]  loss=0.30883  grad=0.666  lr=9.33e-04
+  [5:300/375]  loss=0.28390  grad=0.501  lr=9.60e-04
+  [5:350/375]  loss=0.36138  grad=0.449  lr=9.87e-04
+Epoch 5 — train loss: 0.31274  (9.2s)
+Epoch 5 — val   loss: 0.33988
+  ✓ Saved checkpoint (val_loss=0.33988)
+  [6:50/375]  loss=0.31119  grad=0.467  lr=1.00e-03
+  [6:100/375]  loss=0.26223  grad=0.525  lr=1.00e-03
+  [6:150/375]  loss=0.35946  grad=0.603  lr=1.00e-03
+  [6:200/375]  loss=0.31212  grad=0.343  lr=1.00e-03
+  [6:250/375]  loss=0.30989  grad=0.823  lr=9.99e-04
+  [6:300/375]  loss=0.31470  grad=1.219  lr=9.99e-04
+  [6:350/375]  loss=0.27555  grad=0.366  lr=9.99e-04
+Epoch 6 — train loss: 0.30711  (9.2s)
+Epoch 6 — val   loss: 0.32809
+  ✓ Saved checkpoint (val_loss=0.32809)
+  [7:50/375]  loss=0.27816  grad=0.615  lr=9.98e-04
+  [7:100/375]  loss=0.30270  grad=1.193  lr=9.98e-04
+  [7:150/375]  loss=0.28351  grad=1.003  lr=9.98e-04
+  [7:200/375]  loss=0.32132  grad=0.360  lr=9.97e-04
+  [7:250/375]  loss=0.29387  grad=0.317  lr=9.97e-04
+  [7:300/375]  loss=0.31506  grad=0.545  lr=9.96e-04
+  [7:350/375]  loss=0.31191  grad=0.331  lr=9.95e-04
+Epoch 7 — train loss: 0.30100  (9.2s)
+Epoch 7 — val   loss: 0.33879
+  [8:50/375]  loss=0.27916  grad=0.352  lr=9.94e-04
+  [8:100/375]  loss=0.27061  grad=0.419  lr=9.94e-04
+  [8:150/375]  loss=0.28641  grad=0.662  lr=9.93e-04
+  [8:200/375]  loss=0.27327  grad=0.329  lr=9.92e-04
+  [8:250/375]  loss=0.31748  grad=0.585  lr=9.91e-04
+  [8:300/375]  loss=0.27046  grad=0.833  lr=9.90e-04
+  [8:350/375]  loss=0.31117  grad=0.640  lr=9.90e-04
+Epoch 8 — train loss: 0.29390  (9.2s)
+Epoch 8 — val   loss: 0.33086
+  [9:50/375]  loss=0.28234  grad=0.544  lr=9.88e-04
+  [9:100/375]  loss=0.29963  grad=0.554  lr=9.87e-04
+  [9:150/375]  loss=0.29115  grad=0.556  lr=9.86e-04
+  [9:200/375]  loss=0.31139  grad=0.676  lr=9.85e-04
+  [9:250/375]  loss=0.27923  grad=0.524  lr=9.84e-04
+  [9:300/375]  loss=0.28488  grad=0.583  lr=9.83e-04
+  [9:350/375]  loss=0.31596  grad=0.774  lr=9.81e-04
+Epoch 9 — train loss: 0.28540  (9.2s)
+Epoch 9 — val   loss: 0.33297
+  [10:50/375]  loss=0.27817  grad=0.372  lr=9.79e-04
+  [10:100/375]  loss=0.28720  grad=0.511  lr=9.78e-04
+  [10:150/375]  loss=0.26330  grad=0.458  lr=9.77e-04
+  [10:200/375]  loss=0.28706  grad=0.428  lr=9.75e-04
+  [10:250/375]  loss=0.25277  grad=0.402  lr=9.74e-04
+  [10:300/375]  loss=0.27602  grad=0.467  lr=9.72e-04
+  [10:350/375]  loss=0.24856  grad=0.402  lr=9.71e-04
+Epoch 10 — train loss: 0.27688  (9.2s)
+Epoch 10 — val   loss: 0.37044
+  [11:50/375]  loss=0.22856  grad=0.389  lr=9.68e-04
+  [11:100/375]  loss=0.30977  grad=0.658  lr=9.67e-04
+  [11:150/375]  loss=0.26445  grad=0.452  lr=9.65e-04
+  [11:200/375]  loss=0.27698  grad=0.433  lr=9.63e-04
+  [11:250/375]  loss=0.24762  grad=0.613  lr=9.61e-04
+  [11:300/375]  loss=0.27706  grad=0.411  lr=9.60e-04
+  [11:350/375]  loss=0.27168  grad=0.531  lr=9.58e-04
+Epoch 11 — train loss: 0.26850  (9.2s)
+Epoch 11 — val   loss: 0.33443
+  [12:50/375]  loss=0.24151  grad=0.402  lr=9.55e-04
+  [12:100/375]  loss=0.24257  grad=0.382  lr=9.53e-04
+  [12:150/375]  loss=0.24328  grad=0.453  lr=9.51e-04
+  [12:200/375]  loss=0.23570  grad=0.463  lr=9.49e-04
+  [12:250/375]  loss=0.28123  grad=0.589  lr=9.47e-04
+  [12:300/375]  loss=0.28281  grad=0.494  lr=9.45e-04
+  [12:350/375]  loss=0.25507  grad=0.821  lr=9.43e-04
+Epoch 12 — train loss: 0.26117  (9.2s)
+Epoch 12 — val   loss: 0.34999
+  [13:50/375]  loss=0.23426  grad=0.427  lr=9.39e-04
+  [13:100/375]  loss=0.26115  grad=0.627  lr=9.37e-04
+  [13:150/375]  loss=0.27594  grad=0.615  lr=9.35e-04
+  [13:200/375]  loss=0.23616  grad=0.441  lr=9.32e-04
+  [13:250/375]  loss=0.26232  grad=0.455  lr=9.30e-04
+  [13:300/375]  loss=0.24225  grad=0.402  lr=9.28e-04
+  [13:350/375]  loss=0.26741  grad=0.600  lr=9.25e-04
+Epoch 13 — train loss: 0.25303  (9.2s)
+Epoch 13 — val   loss: 0.33979
+  [14:50/375]  loss=0.23119  grad=0.404  lr=9.22e-04
+  [14:100/375]  loss=0.24756  grad=0.398  lr=9.19e-04
+  [14:150/375]  loss=0.26100  grad=0.476  lr=9.16e-04
+  [14:200/375]  loss=0.23987  grad=0.429  lr=9.14e-04
+  [14:250/375]  loss=0.24994  grad=0.394  lr=9.11e-04
+  [14:300/375]  loss=0.25242  grad=0.393  lr=9.09e-04
+  [14:350/375]  loss=0.24903  grad=0.365  lr=9.06e-04
+Epoch 14 — train loss: 0.24721  (9.2s)
+Epoch 14 — val   loss: 0.35280
+  [15:50/375]  loss=0.26619  grad=0.517  lr=9.02e-04
+  [15:100/375]  loss=0.23526  grad=0.389  lr=8.99e-04
+  [15:150/375]  loss=0.23255  grad=0.418  lr=8.96e-04
+  [15:200/375]  loss=0.24645  grad=0.608  lr=8.93e-04
+  [15:250/375]  loss=0.24366  grad=0.357  lr=8.90e-04
+  [15:300/375]  loss=0.23436  grad=0.541  lr=8.87e-04
+  [15:350/375]  loss=0.22328  grad=0.369  lr=8.85e-04
+Epoch 15 — train loss: 0.24109  (9.2s)
+Epoch 15 — val   loss: 0.35142
+  [16:50/375]  loss=0.23096  grad=0.620  lr=8.80e-04
+  [16:100/375]  loss=0.24110  grad=0.406  lr=8.77e-04
+  [16:150/375]  loss=0.23532  grad=0.580  lr=8.74e-04
+  [16:200/375]  loss=0.23235  grad=0.535  lr=8.71e-04
+  [16:250/375]  loss=0.22437  grad=0.280  lr=8.68e-04
+  [16:300/375]  loss=0.24328  grad=0.446  lr=8.64e-04
+  [16:350/375]  loss=0.23280  grad=0.710  lr=8.61e-04
+Epoch 16 — train loss: 0.23521  (9.2s)
+Epoch 16 — val   loss: 0.33727
+  [17:50/375]  loss=0.21088  grad=0.487  lr=8.56e-04
+  [17:100/375]  loss=0.21925  grad=0.490  lr=8.53e-04
+  [17:150/375]  loss=0.22355  grad=0.369  lr=8.50e-04
+  [17:200/375]  loss=0.24568  grad=0.555  lr=8.46e-04
+  [17:250/375]  loss=0.23091  grad=0.318  lr=8.43e-04
+  [17:300/375]  loss=0.20638  grad=0.404  lr=8.40e-04
+  [17:350/375]  loss=0.23312  grad=0.351  lr=8.36e-04
+Epoch 17 — train loss: 0.22965  (9.2s)
+Epoch 17 — val   loss: 0.35439
+  [18:50/375]  loss=0.20763  grad=0.478  lr=8.31e-04
+  [18:100/375]  loss=0.20785  grad=0.506  lr=8.28e-04
+  [18:150/375]  loss=0.21895  grad=0.379  lr=8.24e-04
+  [18:200/375]  loss=0.23252  grad=0.509  lr=8.21e-04
+  [18:250/375]  loss=0.21427  grad=0.423  lr=8.17e-04
+  [18:300/375]  loss=0.21804  grad=0.423  lr=8.13e-04
+  [18:350/375]  loss=0.22134  grad=0.414  lr=8.10e-04
+Epoch 18 — train loss: 0.22589  (9.2s)
+Epoch 18 — val   loss: 0.37040
+  [19:50/375]  loss=0.20371  grad=0.309  lr=8.04e-04
+  [19:100/375]  loss=0.23284  grad=0.383  lr=8.00e-04
+  [19:150/375]  loss=0.23817  grad=0.328  lr=7.97e-04
+  [19:200/375]  loss=0.23021  grad=0.412  lr=7.93e-04
+  [19:250/375]  loss=0.21346  grad=0.411  lr=7.89e-04
+  [19:300/375]  loss=0.20648  grad=0.355  lr=7.85e-04
+  [19:350/375]  loss=0.22608  grad=0.357  lr=7.82e-04
+Epoch 19 — train loss: 0.22090  (9.2s)
+Epoch 19 — val   loss: 0.35582
+  [20:50/375]  loss=0.18975  grad=0.322  lr=7.76e-04
+  [20:100/375]  loss=0.20602  grad=0.318  lr=7.72e-04
+  [20:150/375]  loss=0.21519  grad=0.345  lr=7.68e-04
+  [20:200/375]  loss=0.23028  grad=0.536  lr=7.64e-04
+  [20:250/375]  loss=0.21629  grad=0.374  lr=7.60e-04
+  [20:300/375]  loss=0.21790  grad=0.446  lr=7.56e-04
+  [20:350/375]  loss=0.20859  grad=0.268  lr=7.52e-04
+Epoch 20 — train loss: 0.21644  (9.3s)
+Epoch 20 — val   loss: 0.36903
+  [21:50/375]  loss=0.20968  grad=0.518  lr=7.46e-04
+  [21:100/375]  loss=0.21820  grad=0.354  lr=7.42e-04
+  [21:150/375]  loss=0.20347  grad=0.393  lr=7.38e-04
+  [21:200/375]  loss=0.20469  grad=0.403  lr=7.34e-04
+  [21:250/375]  loss=0.20648  grad=0.520  lr=7.30e-04
+  [21:300/375]  loss=0.19442  grad=0.368  lr=7.25e-04
+  [21:350/375]  loss=0.19450  grad=0.386  lr=7.21e-04
+Epoch 21 — train loss: 0.21340  (9.2s)
+Epoch 21 — val   loss: 0.36661
+Early stopping at epoch 21
+
+=======================================================
+Loading best checkpoint for testing...
+Best checkpoint: epoch=6, val_loss=0.32809
+
+Test results:
+  H= 192  MSE=0.37629  MAE=0.41108  RMSE=0.61343
+
+Results saved to /gpfs/scratch/an4462/at6646/ne-time-v2/outputs/netime_ETTm1_medium_perH_CI_CI_H192_results.json
+  H= 192  MSE=0.37629  MAE=0.41108
+
+=======================================================
+Per-horizon training: H=336
+=======================================================
+Loaded ETTm1: shape=(69680, 7)
+Train: 23965 samples (374 batches)
+Val:   6121 samples (96 batches)
+Test:  13089 samples (205 batches)
+
+Device: cuda
+Total parameters: 258,586
+  revin                       2
+  patch_embed            10,496
+  decomposer                  0
+  curvatures                  4
+  hyp_encoders          125,379
+  horizon_enc            25,539
+  hyp_decoder            24,961
+  temporal_proj          55,312
+  out_proj               16,897
+
+Param groups:
+  decay         254,592  (wd=0.0001)
+  no_decay        3,990  (wd=0)
+  curvature           4  (wd=0.001, lr×0.1)
+
+=======================================================
+Training: netime_ETTm1_medium_perH_CI_CI_H336
+=======================================================
+  [1:50/374]  loss=0.61212  grad=0.027  lr=2.67e-05
+  [1:100/374]  loss=0.59418  grad=0.316  lr=5.35e-05
+  [1:150/374]  loss=0.42343  grad=0.675  lr=8.02e-05
+  [1:200/374]  loss=0.39722  grad=0.558  lr=1.07e-04
+  [1:250/374]  loss=0.41729  grad=0.805  lr=1.34e-04
+  [1:300/374]  loss=0.39573  grad=0.971  lr=1.60e-04
+  [1:350/374]  loss=0.42257  grad=3.119  lr=1.87e-04
+Epoch 1 — train loss: 0.47042  (9.9s)
+Epoch 1 — val   loss: 0.37840
+  ✓ Saved checkpoint (val_loss=0.37840)
+  [2:50/374]  loss=0.36764  grad=0.581  lr=2.27e-04
+  [2:100/374]  loss=0.34723  grad=0.476  lr=2.53e-04
+  [2:150/374]  loss=0.41102  grad=0.662  lr=2.80e-04
+  [2:200/374]  loss=0.37665  grad=0.486  lr=3.07e-04
+  [2:250/374]  loss=0.36774  grad=0.597  lr=3.34e-04
+  [2:300/374]  loss=0.44025  grad=0.916  lr=3.60e-04
+  [2:350/374]  loss=0.35127  grad=0.812  lr=3.87e-04
+Epoch 2 — train loss: 0.38547  (9.9s)
+Epoch 2 — val   loss: 0.35340
+  ✓ Saved checkpoint (val_loss=0.35340)
+  [3:50/374]  loss=0.35781  grad=0.338  lr=4.27e-04
+  [3:100/374]  loss=0.36774  grad=0.964  lr=4.53e-04
+  [3:150/374]  loss=0.36348  grad=0.660  lr=4.80e-04
+  [3:200/374]  loss=0.34905  grad=0.478  lr=5.07e-04
+  [3:250/374]  loss=0.37259  grad=0.632  lr=5.34e-04
+  [3:300/374]  loss=0.36360  grad=1.127  lr=5.60e-04
+  [3:350/374]  loss=0.37437  grad=0.843  lr=5.87e-04
+Epoch 3 — train loss: 0.37454  (9.9s)
+Epoch 3 — val   loss: 0.34973
+  ✓ Saved checkpoint (val_loss=0.34973)
+  [4:50/374]  loss=0.37517  grad=1.112  lr=6.27e-04
+  [4:100/374]  loss=0.35086  grad=2.343  lr=6.53e-04
+  [4:150/374]  loss=0.29378  grad=0.632  lr=6.80e-04
+  [4:200/374]  loss=0.35733  grad=1.278  lr=7.07e-04
+  [4:250/374]  loss=0.40661  grad=1.014  lr=7.34e-04
+  [4:300/374]  loss=0.39400  grad=0.478  lr=7.60e-04
+  [4:350/374]  loss=0.37876  grad=1.265  lr=7.87e-04
+Epoch 4 — train loss: 0.36943  (9.9s)
+Epoch 4 — val   loss: 0.35610
+  [5:50/374]  loss=0.34415  grad=0.642  lr=8.27e-04
+  [5:100/374]  loss=0.32896  grad=2.811  lr=8.53e-04
+  [5:150/374]  loss=0.31028  grad=0.323  lr=8.80e-04
+  [5:200/374]  loss=0.34877  grad=0.397  lr=9.07e-04
+  [5:250/374]  loss=0.34732  grad=0.440  lr=9.34e-04
+  [5:300/374]  loss=0.40712  grad=0.628  lr=9.60e-04
+  [5:350/374]  loss=0.30227  grad=0.990  lr=9.87e-04
+Epoch 5 — train loss: 0.36541  (9.9s)
+Epoch 5 — val   loss: 0.34433
+  ✓ Saved checkpoint (val_loss=0.34433)
+  [6:50/374]  loss=0.40534  grad=0.557  lr=1.00e-03
+  [6:100/374]  loss=0.41882  grad=0.656  lr=1.00e-03
+  [6:150/374]  loss=0.36067  grad=1.644  lr=1.00e-03
+  [6:200/374]  loss=0.31955  grad=0.437  lr=1.00e-03
+  [6:250/374]  loss=0.38256  grad=0.692  lr=9.99e-04
+  [6:300/374]  loss=0.35789  grad=0.584  lr=9.99e-04
+  [6:350/374]  loss=0.30633  grad=0.314  lr=9.99e-04
+Epoch 6 — train loss: 0.35897  (9.9s)
+Epoch 6 — val   loss: 0.35036
+  [7:50/374]  loss=0.35009  grad=0.508  lr=9.98e-04
+  [7:100/374]  loss=0.29633  grad=0.987  lr=9.98e-04
+  [7:150/374]  loss=0.34569  grad=0.705  lr=9.98e-04
+  [7:200/374]  loss=0.33241  grad=0.587  lr=9.97e-04
+  [7:250/374]  loss=0.34538  grad=0.575  lr=9.97e-04
+  [7:300/374]  loss=0.39880  grad=0.584  lr=9.96e-04
+  [7:350/374]  loss=0.32939  grad=0.674  lr=9.95e-04
+Epoch 7 — train loss: 0.35226  (9.9s)
+Epoch 7 — val   loss: 0.35198
+  [8:50/374]  loss=0.34894  grad=0.836  lr=9.94e-04
+  [8:100/374]  loss=0.37620  grad=0.629  lr=9.94e-04
+  [8:150/374]  loss=0.32586  grad=0.542  lr=9.93e-04
+  [8:200/374]  loss=0.34189  grad=0.616  lr=9.92e-04
+  [8:250/374]  loss=0.34334  grad=0.703  lr=9.91e-04
+  [8:300/374]  loss=0.34851  grad=0.608  lr=9.90e-04
+  [8:350/374]  loss=0.32723  grad=0.622  lr=9.90e-04
+Epoch 8 — train loss: 0.34232  (9.9s)
+Epoch 8 — val   loss: 0.35722
+  [9:50/374]  loss=0.34266  grad=0.462  lr=9.88e-04
+  [9:100/374]  loss=0.35867  grad=0.635  lr=9.87e-04
+  [9:150/374]  loss=0.32083  grad=0.753  lr=9.86e-04
+  [9:200/374]  loss=0.31442  grad=0.473  lr=9.85e-04
+  [9:250/374]  loss=0.31125  grad=0.331  lr=9.84e-04
+  [9:300/374]  loss=0.35873  grad=0.450  lr=9.82e-04
+  [9:350/374]  loss=0.34765  grad=0.399  lr=9.81e-04
+Epoch 9 — train loss: 0.32895  (9.8s)
+Epoch 9 — val   loss: 0.35975
+  [10:50/374]  loss=0.32268  grad=0.690  lr=9.79e-04
+  [10:100/374]  loss=0.30737  grad=0.480  lr=9.78e-04
+  [10:150/374]  loss=0.29975  grad=0.474  lr=9.77e-04
+  [10:200/374]  loss=0.29788  grad=0.448  lr=9.75e-04
+  [10:250/374]  loss=0.34071  grad=0.631  lr=9.74e-04
+  [10:300/374]  loss=0.30721  grad=0.742  lr=9.72e-04
+  [10:350/374]  loss=0.29346  grad=0.505  lr=9.71e-04
+Epoch 10 — train loss: 0.31745  (9.9s)
+Epoch 10 — val   loss: 0.35692
+  [11:50/374]  loss=0.29427  grad=0.441  lr=9.68e-04
+  [11:100/374]  loss=0.31665  grad=0.567  lr=9.67e-04
+  [11:150/374]  loss=0.28540  grad=0.535  lr=9.65e-04
+  [11:200/374]  loss=0.31437  grad=0.676  lr=9.63e-04
+  [11:250/374]  loss=0.29435  grad=0.528  lr=9.61e-04
+  [11:300/374]  loss=0.30719  grad=0.640  lr=9.60e-04
+  [11:350/374]  loss=0.30270  grad=0.508  lr=9.58e-04
+Epoch 11 — train loss: 0.30733  (9.9s)
+Epoch 11 — val   loss: 0.36093
+  [12:50/374]  loss=0.31844  grad=0.478  lr=9.55e-04
+  [12:100/374]  loss=0.25604  grad=0.597  lr=9.53e-04
+  [12:150/374]  loss=0.31703  grad=0.677  lr=9.51e-04
+  [12:200/374]  loss=0.29322  grad=0.516  lr=9.49e-04
+  [12:250/374]  loss=0.33019  grad=0.486  lr=9.47e-04
+  [12:300/374]  loss=0.28724  grad=0.588  lr=9.45e-04
+  [12:350/374]  loss=0.29273  grad=0.427  lr=9.43e-04
+Epoch 12 — train loss: 0.29745  (9.9s)
+Epoch 12 — val   loss: 0.36904
+  [13:50/374]  loss=0.29532  grad=0.578  lr=9.39e-04
+  [13:100/374]  loss=0.30002  grad=0.525  lr=9.37e-04
+  [13:150/374]  loss=0.30146  grad=0.782  lr=9.35e-04
+  [13:200/374]  loss=0.26049  grad=0.314  lr=9.32e-04
+  [13:250/374]  loss=0.30199  grad=0.780  lr=9.30e-04
+  [13:300/374]  loss=0.27809  grad=0.568  lr=9.28e-04
+  [13:350/374]  loss=0.28342  grad=0.552  lr=9.25e-04
+Epoch 13 — train loss: 0.28878  (9.9s)
+Epoch 13 — val   loss: 0.37333
+  [14:50/374]  loss=0.27281  grad=0.447  lr=9.22e-04
+  [14:100/374]  loss=0.27391  grad=0.439  lr=9.19e-04
+  [14:150/374]  loss=0.30215  grad=0.673  lr=9.16e-04
+  [14:200/374]  loss=0.30196  grad=0.615  lr=9.14e-04
+  [14:250/374]  loss=0.26211  grad=0.381  lr=9.11e-04
+  [14:300/374]  loss=0.27467  grad=0.448  lr=9.09e-04
+  [14:350/374]  loss=0.30112  grad=0.608  lr=9.06e-04
+Epoch 14 — train loss: 0.28162  (9.9s)
+Epoch 14 — val   loss: 0.36887
+  [15:50/374]  loss=0.28542  grad=0.610  lr=9.02e-04
+  [15:100/374]  loss=0.29199  grad=0.426  lr=8.99e-04
+  [15:150/374]  loss=0.26538  grad=0.412  lr=8.96e-04
+  [15:200/374]  loss=0.27664  grad=0.659  lr=8.93e-04
+  [15:250/374]  loss=0.26477  grad=0.652  lr=8.90e-04
+  [15:300/374]  loss=0.25744  grad=0.502  lr=8.87e-04
+  [15:350/374]  loss=0.26668  grad=0.525  lr=8.84e-04
+Epoch 15 — train loss: 0.27486  (9.9s)
+Epoch 15 — val   loss: 0.36523
+  [16:50/374]  loss=0.27089  grad=0.343  lr=8.80e-04
+  [16:100/374]  loss=0.27500  grad=0.406  lr=8.77e-04
+  [16:150/374]  loss=0.25567  grad=0.594  lr=8.74e-04
+  [16:200/374]  loss=0.27111  grad=0.655  lr=8.71e-04
+  [16:250/374]  loss=0.25194  grad=0.443  lr=8.68e-04
+  [16:300/374]  loss=0.25800  grad=0.520  lr=8.64e-04
+  [16:350/374]  loss=0.25730  grad=0.445  lr=8.61e-04
+Epoch 16 — train loss: 0.26757  (9.9s)
+Epoch 16 — val   loss: 0.36791
+  [17:50/374]  loss=0.27432  grad=0.635  lr=8.56e-04
+  [17:100/374]  loss=0.26242  grad=0.622  lr=8.53e-04
+  [17:150/374]  loss=0.25528  grad=0.475  lr=8.50e-04
+  [17:200/374]  loss=0.26466  grad=0.537  lr=8.46e-04
+  [17:250/374]  loss=0.26090  grad=0.546  lr=8.43e-04
+  [17:300/374]  loss=0.25105  grad=0.543  lr=8.40e-04
+  [17:350/374]  loss=0.25431  grad=0.488  lr=8.36e-04
+Epoch 17 — train loss: 0.26213  (9.9s)
+Epoch 17 — val   loss: 0.37817
+  [18:50/374]  loss=0.27374  grad=0.603  lr=8.31e-04
+  [18:100/374]  loss=0.27784  grad=0.606  lr=8.28e-04
+  [18:150/374]  loss=0.24611  grad=0.383  lr=8.24e-04
+  [18:200/374]  loss=0.26212  grad=0.331  lr=8.20e-04
+  [18:250/374]  loss=0.27727  grad=0.465  lr=8.17e-04
+  [18:300/374]  loss=0.25412  grad=0.387  lr=8.13e-04
+  [18:350/374]  loss=0.26042  grad=0.515  lr=8.10e-04
+Epoch 18 — train loss: 0.25867  (9.8s)
+Epoch 18 — val   loss: 0.37259
+  [19:50/374]  loss=0.25602  grad=0.321  lr=8.04e-04
+  [19:100/374]  loss=0.25479  grad=0.354  lr=8.00e-04
+  [19:150/374]  loss=0.24191  grad=0.333  lr=7.97e-04
+  [19:200/374]  loss=0.25046  grad=0.388  lr=7.93e-04
+  [19:250/374]  loss=0.23040  grad=0.444  lr=7.89e-04
+  [19:300/374]  loss=0.25243  grad=0.446  lr=7.85e-04
+  [19:350/374]  loss=0.25274  grad=0.441  lr=7.81e-04
+Epoch 19 — train loss: 0.25278  (9.9s)
+Epoch 19 — val   loss: 0.37633
+  [20:50/374]  loss=0.22717  grad=0.401  lr=7.76e-04
+  [20:100/374]  loss=0.25112  grad=0.458  lr=7.72e-04
+  [20:150/374]  loss=0.25303  grad=0.361  lr=7.68e-04
+  [20:200/374]  loss=0.24932  grad=0.331  lr=7.64e-04
+  [20:250/374]  loss=0.24562  grad=0.594  lr=7.60e-04
+  [20:300/374]  loss=0.23613  grad=0.441  lr=7.56e-04
+  [20:350/374]  loss=0.23978  grad=0.387  lr=7.52e-04
+Epoch 20 — train loss: 0.25015  (9.9s)
+Epoch 20 — val   loss: 0.37698
+Early stopping at epoch 20
+
+=======================================================
+Loading best checkpoint for testing...
+Best checkpoint: epoch=5, val_loss=0.34433
+
+Test results:
+  H= 336  MSE=0.42556  MAE=0.44377  RMSE=0.65235
+
+Results saved to /gpfs/scratch/an4462/at6646/ne-time-v2/outputs/netime_ETTm1_medium_perH_CI_CI_H336_results.json
+  H= 336  MSE=0.42556  MAE=0.44377
+
+=======================================================
+Per-horizon training: H=720
+=======================================================
+Loaded ETTm1: shape=(69680, 7)
+Train: 23773 samples (371 batches)
+Val:   5737 samples (90 batches)
+Test:  12705 samples (199 batches)
+
+Device: cuda
+Total parameters: 258,586
+  revin                       2
+  patch_embed            10,496
+  decomposer                  0
+  curvatures                  4
+  hyp_encoders          125,379
+  horizon_enc            25,539
+  hyp_decoder            24,961
+  temporal_proj          55,312
+  out_proj               16,897
+
+Param groups:
+  decay         254,592  (wd=0.0001)
+  no_decay        3,990  (wd=0)
+  curvature           4  (wd=0.001, lr×0.1)
+
+=======================================================
+Training: netime_ETTm1_medium_perH_CI_CI_H720
+=======================================================
+  [1:50/371]  loss=0.59754  grad=0.073  lr=2.70e-05
+  [1:100/371]  loss=0.59831  grad=0.182  lr=5.39e-05
+  [1:150/371]  loss=0.54167  grad=0.312  lr=8.09e-05
+  [1:200/371]  loss=0.51275  grad=0.410  lr=1.08e-04
+  [1:250/371]  loss=0.42999  grad=0.369  lr=1.35e-04
+  [1:300/371]  loss=0.50430  grad=0.393  lr=1.62e-04
+  [1:350/371]  loss=0.51216  grad=0.640  lr=1.89e-04
+Epoch 1 — train loss: 0.54630  (11.3s)
+Epoch 1 — val   loss: 0.40175
+  ✓ Saved checkpoint (val_loss=0.40175)
+  [2:50/371]  loss=0.40539  grad=0.658  lr=2.27e-04
+  [2:100/371]  loss=0.47786  grad=0.378  lr=2.54e-04
+  [2:150/371]  loss=0.49925  grad=0.661  lr=2.81e-04
+  [2:200/371]  loss=0.42397  grad=0.249  lr=3.08e-04
+  [2:250/371]  loss=0.51908  grad=0.423  lr=3.35e-04
+  [2:300/371]  loss=0.49685  grad=1.226  lr=3.62e-04
+  [2:350/371]  loss=0.50364  grad=0.742  lr=3.89e-04
+Epoch 2 — train loss: 0.46801  (11.3s)
+Epoch 2 — val   loss: 0.38559
+  ✓ Saved checkpoint (val_loss=0.38559)
+  [3:50/371]  loss=0.42776  grad=0.664  lr=4.27e-04
+  [3:100/371]  loss=0.45621  grad=0.471  lr=4.54e-04
+  [3:150/371]  loss=0.41289  grad=0.475  lr=4.81e-04
+  [3:200/371]  loss=0.47980  grad=0.313  lr=5.08e-04
+  [3:250/371]  loss=0.47112  grad=0.658  lr=5.35e-04
+  [3:300/371]  loss=0.48568  grad=0.355  lr=5.62e-04
+  [3:350/371]  loss=0.47712  grad=0.672  lr=5.89e-04
+Epoch 3 — train loss: 0.45479  (11.3s)
+Epoch 3 — val   loss: 0.38473
+  ✓ Saved checkpoint (val_loss=0.38473)
+  [4:50/371]  loss=0.39617  grad=0.394  lr=6.27e-04
+  [4:100/371]  loss=0.49061  grad=0.539  lr=6.54e-04
+  [4:150/371]  loss=0.42950  grad=0.710  lr=6.81e-04
+  [4:200/371]  loss=0.40764  grad=0.551  lr=7.08e-04
+  [4:250/371]  loss=0.42171  grad=0.691  lr=7.35e-04
+  [4:300/371]  loss=0.46804  grad=0.960  lr=7.62e-04
+  [4:350/371]  loss=0.47361  grad=0.985  lr=7.89e-04
+Epoch 4 — train loss: 0.44372  (11.3s)
+Epoch 4 — val   loss: 0.38585
+  [5:50/371]  loss=0.39319  grad=0.495  lr=8.27e-04
+  [5:100/371]  loss=0.41321  grad=0.433  lr=8.54e-04
+  [5:150/371]  loss=0.38371  grad=0.950  lr=8.81e-04
+  [5:200/371]  loss=0.47163  grad=0.555  lr=9.08e-04
+  [5:250/371]  loss=0.47397  grad=0.595  lr=9.35e-04
+  [5:300/371]  loss=0.42501  grad=0.408  lr=9.62e-04
+  [5:350/371]  loss=0.41900  grad=0.561  lr=9.89e-04
+Epoch 5 — train loss: 0.43255  (11.3s)
+Epoch 5 — val   loss: 0.41188
+  [6:50/371]  loss=0.39346  grad=0.465  lr=1.00e-03
+  [6:100/371]  loss=0.36089  grad=0.697  lr=1.00e-03
+  [6:150/371]  loss=0.44975  grad=0.770  lr=1.00e-03
+  [6:200/371]  loss=0.39613  grad=0.662  lr=1.00e-03
+  [6:250/371]  loss=0.41895  grad=0.477  lr=9.99e-04
+  [6:300/371]  loss=0.44348  grad=0.671  lr=9.99e-04
+  [6:350/371]  loss=0.39024  grad=0.683  lr=9.99e-04
+Epoch 6 — train loss: 0.41628  (11.3s)
+Epoch 6 — val   loss: 0.38995
+  [7:50/371]  loss=0.40380  grad=0.870  lr=9.98e-04
+  [7:100/371]  loss=0.41494  grad=0.731  lr=9.98e-04
+  [7:150/371]  loss=0.41302  grad=0.943  lr=9.98e-04
+  [7:200/371]  loss=0.38022  grad=0.672  lr=9.97e-04
+  [7:250/371]  loss=0.35207  grad=0.359  lr=9.97e-04
+  [7:300/371]  loss=0.35650  grad=0.528  lr=9.96e-04
+  [7:350/371]  loss=0.40403  grad=1.577  lr=9.95e-04
+Epoch 7 — train loss: 0.39479  (11.3s)
+Epoch 7 — val   loss: 0.42923
+  [8:50/371]  loss=0.34882  grad=0.643  lr=9.94e-04
+  [8:100/371]  loss=0.41996  grad=0.799  lr=9.94e-04
+  [8:150/371]  loss=0.37895  grad=0.752  lr=9.93e-04
+  [8:200/371]  loss=0.35486  grad=0.478  lr=9.92e-04
+  [8:250/371]  loss=0.40483  grad=0.710  lr=9.91e-04
+  [8:300/371]  loss=0.38336  grad=0.954  lr=9.90e-04
+  [8:350/371]  loss=0.36703  grad=0.613  lr=9.89e-04
+Epoch 8 — train loss: 0.37411  (11.3s)
+Epoch 8 — val   loss: 0.39129
+  [9:50/371]  loss=0.36111  grad=0.708  lr=9.88e-04
+  [9:100/371]  loss=0.35953  grad=0.889  lr=9.87e-04
+  [9:150/371]  loss=0.36742  grad=1.116  lr=9.86e-04
+  [9:200/371]  loss=0.38134  grad=0.507  lr=9.85e-04
+  [9:250/371]  loss=0.38304  grad=1.108  lr=9.84e-04
+  [9:300/371]  loss=0.32351  grad=0.716  lr=9.82e-04
+  [9:350/371]  loss=0.35140  grad=1.129  lr=9.81e-04
+Epoch 9 — train loss: 0.35889  (11.3s)
+Epoch 9 — val   loss: 0.39037
+  [10:50/371]  loss=0.34074  grad=0.774  lr=9.79e-04
+  [10:100/371]  loss=0.35441  grad=0.601  lr=9.78e-04
+  [10:150/371]  loss=0.34430  grad=0.729  lr=9.77e-04
+  [10:200/371]  loss=0.33930  grad=0.775  lr=9.75e-04
+  [10:250/371]  loss=0.36256  grad=0.918  lr=9.74e-04
+  [10:300/371]  loss=0.33344  grad=0.735  lr=9.72e-04
+  [10:350/371]  loss=0.34407  grad=0.975  lr=9.71e-04
+Epoch 10 — train loss: 0.34591  (11.3s)
+Epoch 10 — val   loss: 0.42460
+  [11:50/371]  loss=0.34656  grad=1.030  lr=9.68e-04
+  [11:100/371]  loss=0.33318  grad=0.519  lr=9.67e-04
+  [11:150/371]  loss=0.32991  grad=0.451  lr=9.65e-04
+  [11:200/371]  loss=0.32215  grad=0.597  lr=9.63e-04
+  [11:250/371]  loss=0.31874  grad=0.398  lr=9.61e-04
+  [11:300/371]  loss=0.34584  grad=0.801  lr=9.59e-04
+  [11:350/371]  loss=0.35278  grad=0.508  lr=9.58e-04
+Epoch 11 — train loss: 0.33734  (11.3s)
+Epoch 11 — val   loss: 0.40384
+  [12:50/371]  loss=0.33561  grad=0.790  lr=9.55e-04
+  [12:100/371]  loss=0.31447  grad=0.493  lr=9.53e-04
+  [12:150/371]  loss=0.31764  grad=0.577  lr=9.51e-04
+  [12:200/371]  loss=0.33858  grad=0.399  lr=9.49e-04
+  [12:250/371]  loss=0.31924  grad=0.645  lr=9.47e-04
+  [12:300/371]  loss=0.35104  grad=0.726  lr=9.45e-04
+  [12:350/371]  loss=0.33308  grad=0.961  lr=9.42e-04
+Epoch 12 — train loss: 0.32947  (11.3s)
+Epoch 12 — val   loss: 0.39843
+  [13:50/371]  loss=0.30650  grad=0.518  lr=9.39e-04
+  [13:100/371]  loss=0.29538  grad=0.363  lr=9.37e-04
+  [13:150/371]  loss=0.34402  grad=0.501  lr=9.35e-04
+  [13:200/371]  loss=0.31401  grad=0.422  lr=9.32e-04
+  [13:250/371]  loss=0.31587  grad=0.403  lr=9.30e-04
+  [13:300/371]  loss=0.30920  grad=0.583  lr=9.28e-04
+  [13:350/371]  loss=0.30636  grad=0.715  lr=9.25e-04
+Epoch 13 — train loss: 0.32187  (11.3s)
+Epoch 13 — val   loss: 0.40875
+  [14:50/371]  loss=0.29869  grad=0.474  lr=9.22e-04
+  [14:100/371]  loss=0.32062  grad=0.481  lr=9.19e-04
+  [14:150/371]  loss=0.32688  grad=0.591  lr=9.16e-04
+  [14:200/371]  loss=0.32712  grad=0.521  lr=9.14e-04
+  [14:250/371]  loss=0.31033  grad=0.658  lr=9.11e-04
+  [14:300/371]  loss=0.30819  grad=0.763  lr=9.08e-04
+  [14:350/371]  loss=0.31801  grad=0.735  lr=9.06e-04
+Epoch 14 — train loss: 0.31672  (11.3s)
+Epoch 14 — val   loss: 0.39277
+  [15:50/371]  loss=0.29729  grad=0.604  lr=9.02e-04
+  [15:100/371]  loss=0.33556  grad=0.660  lr=8.99e-04
+  [15:150/371]  loss=0.33422  grad=0.686  lr=8.96e-04
+  [15:200/371]  loss=0.31186  grad=0.766  lr=8.93e-04
+  [15:250/371]  loss=0.32390  grad=0.710  lr=8.90e-04
+  [15:300/371]  loss=0.29549  grad=0.461  lr=8.87e-04
+  [15:350/371]  loss=0.30550  grad=0.469  lr=8.84e-04
+Epoch 15 — train loss: 0.31170  (11.3s)
+Epoch 15 — val   loss: 0.39213
+  [16:50/371]  loss=0.29384  grad=0.420  lr=8.80e-04
+  [16:100/371]  loss=0.32969  grad=0.743  lr=8.77e-04
+  [16:150/371]  loss=0.31264  grad=0.920  lr=8.74e-04
+  [16:200/371]  loss=0.30264  grad=0.364  lr=8.71e-04
+  [16:250/371]  loss=0.28202  grad=0.474  lr=8.67e-04
+  [16:300/371]  loss=0.33260  grad=0.787  lr=8.64e-04
+  [16:350/371]  loss=0.31491  grad=0.613  lr=8.61e-04
+Epoch 16 — train loss: 0.30686  (11.3s)
+Epoch 16 — val   loss: 0.39863
+  [17:50/371]  loss=0.33648  grad=0.743  lr=8.56e-04
+  [17:100/371]  loss=0.29882  grad=0.428  lr=8.53e-04
+  [17:150/371]  loss=0.31343  grad=0.385  lr=8.50e-04
+  [17:200/371]  loss=0.27787  grad=0.662  lr=8.46e-04
+  [17:250/371]  loss=0.29155  grad=0.692  lr=8.43e-04
+  [17:300/371]  loss=0.30293  grad=0.599  lr=8.39e-04
+  [17:350/371]  loss=0.29271  grad=0.577  lr=8.36e-04
+Epoch 17 — train loss: 0.30224  (11.3s)
+Epoch 17 — val   loss: 0.39277
+  [18:50/371]  loss=0.30476  grad=0.808  lr=8.31e-04
+  [18:100/371]  loss=0.30028  grad=0.453  lr=8.28e-04
+  [18:150/371]  loss=0.29002  grad=0.422  lr=8.24e-04
+  [18:200/371]  loss=0.29392  grad=0.454  lr=8.20e-04
+  [18:250/371]  loss=0.29527  grad=0.530  lr=8.17e-04
+  [18:300/371]  loss=0.30198  grad=0.505  lr=8.13e-04
+  [18:350/371]  loss=0.36432  grad=0.540  lr=8.09e-04
+Epoch 18 — train loss: 0.29886  (11.3s)
+Epoch 18 — val   loss: 0.40080
+Early stopping at epoch 18
+
+=======================================================
+Loading best checkpoint for testing...
+Best checkpoint: epoch=3, val_loss=0.38473
+
+Test results:
+  H= 720  MSE=0.47219  MAE=0.48406  RMSE=0.68716
+
+Results saved to /gpfs/scratch/an4462/at6646/ne-time-v2/outputs/netime_ETTm1_medium_perH_CI_CI_H720_results.json
+  H= 720  MSE=0.47219  MAE=0.48406
+
+=======================================================
+Final Test Results:
+=======================================================
+       H       MSE       MAE
+  ------  --------  --------
+      96   0.32953   0.38127
+     192   0.37629   0.41108
+     336   0.42556   0.44377
+     720   0.47219   0.48406
+
+================================================
+Done: Mon Jun  1 11:08:56 EDT 2026
+Outputs:
+-rw-rw-r-- 1 an4462 an4462 1.1M Jun  1 10:58 netime_ETTm1_medium_perH_CI_CI_H192_best.pth
+-rw-rw-r-- 1 an4462 an4462 2.5K Jun  1 11:01 netime_ETTm1_medium_perH_CI_CI_H192_log.csv
+-rw-rw-r-- 1 an4462 an4462  111 Jun  1 11:01 netime_ETTm1_medium_perH_CI_CI_H192_results.json
+-rw-rw-r-- 1 an4462 an4462 1.1M Jun  1 11:02 netime_ETTm1_medium_perH_CI_CI_H336_best.pth
+-rw-rw-r-- 1 an4462 an4462 2.4K Jun  1 11:05 netime_ETTm1_medium_perH_CI_CI_H336_log.csv
+-rw-rw-r-- 1 an4462 an4462  111 Jun  1 11:05 netime_ETTm1_medium_perH_CI_CI_H336_results.json
+-rw-rw-r-- 1 an4462 an4462 1.1M Jun  1 11:05 netime_ETTm1_medium_perH_CI_CI_H720_best.pth
+-rw-rw-r-- 1 an4462 an4462 2.1K Jun  1 11:08 netime_ETTm1_medium_perH_CI_CI_H720_log.csv
+-rw-rw-r-- 1 an4462 an4462  113 Jun  1 11:08 netime_ETTm1_medium_perH_CI_CI_H720_results.json
+-rw-rw-r-- 1 an4462 an4462 1.1M Jun  1 10:55 netime_ETTm1_medium_perH_CI_CI_H96_best.pth
+-rw-rw-r-- 1 an4462 an4462 2.4K Jun  1 10:57 netime_ETTm1_medium_perH_CI_CI_H96_log.csv
+-rw-rw-r-- 1 an4462 an4462  112 Jun  1 10:57 netime_ETTm1_medium_perH_CI_CI_H96_results.json
+-rw-rw-r-- 1 an4462 an4462  441 Jun  1 11:08 netime_ETTm1_medium_perH_CI_CI_per_horizon_results.json
+================================================

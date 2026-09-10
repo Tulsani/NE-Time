@@ -1,0 +1,63 @@
+================================================
+Job ID:           24439321
+Node:             a100-4021
+Project dir:      /gpfs/scratch/an4462/at6646/ne-time-v2
+Dataset:          ETTm1
+Model size:       medium
+Mode:             multi-horizon (joint training)
+Seq len:          512
+Batch size:       64
+LR:               1e-3
+Patience:         15
+Exp name:         netime_ETTm1_medium_joint
+--- overfitting fixes ---
+geo_dropout:      0.2
+hyp_hidden_scale: 1.0
+curvature_wd:     1e-3
+Start time:       Sun Jun 14 23:59:36 EDT 2026
+================================================
+NVIDIA A100 80GB PCIe, 81920 MiB
+
+Python:     3.10.20
+PyTorch:    2.2.0+cu121
+CUDA:       True
+GPU:        NVIDIA A100 80GB PCIe
+VRAM:       85.1 GB
+
+Starting training (multi-horizon (joint training))...
+Input dim: 8
+
+Mode: per-horizon + CI (SOTA benchmark comparison)
+
+=======================================================
+Per-horizon training: H=720
+=======================================================
+Loaded Exchange: shape=(7588, 8)
+Split: train=70% / val=10% / test=20%
+Train: 4,256 samples (133 batches)
+Val:   1 samples (1 batches)
+Test:  463 samples (15 batches)
+
+Device: cuda
+Total parameters: 254,362
+  revin                       2
+  patch_embed             7,680
+  decomposer                  0
+  curvatures                  4
+  hyp_encoders          125,379
+  horizon_enc            25,539
+  hyp_decoder            24,961
+  temporal_proj          53,904
+  out_proj               16,897
+
+Param groups:
+  decay         250,368  (wd=0.0001)
+  no_decay        3,990  (wd=0)
+  curvature           4  (wd=0.001, lr×0.1)
+
+=======================================================
+Training: netime_Exchange_medium_perH_CI_H720_CI_H720
+=======================================================
+  [1:50/133]  loss=0.83297  grad=0.424  lr=1.88e-04
+  [1:100/133]  loss=0.85449  grad=1.006  lr=3.76e-04
+Epoch 1 — train loss: 0.85580  (3.7s)

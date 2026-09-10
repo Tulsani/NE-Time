@@ -1,0 +1,28 @@
+================================================
+Job ID:           23478216
+Node:             a100-4002
+Project dir:      /gpfs/scratch/an4462/at6646/ne-time-v2
+Dataset:          Exchange
+Model size:       medium
+Mode:             per-horizon+CI (SOTA comparison)
+Seq len:          336
+Batch size:       32
+LR:               1e-3
+Patience:         15
+Exp name:         netime_Exchange_medium_perH_CI
+--- overfitting fixes ---
+geo_dropout:      0.2
+hyp_hidden_scale: 1.0
+curvature_wd:     1e-3
+Start time:       Mon Jun  1 12:27:04 EDT 2026
+================================================
+NVIDIA A100 80GB PCIe, 81920 MiB
+
+Python:     3.10.20
+PyTorch:    2.2.0+cu121
+CUDA:       True
+GPU:        NVIDIA A100 80GB PCIe
+VRAM:       85.1 GB
+
+Starting training (per-horizon+CI (SOTA comparison))...
+Downloading Exchange from https://raw.githubusercontent.com/thuml/Time-Series-Library/main/dataset/exchange_rate/exchange_rate.csv ...

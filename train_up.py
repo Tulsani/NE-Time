@@ -136,11 +136,6 @@ class Trainer:
         self.criterion = HorizonWeightedLoss(mse_weight=0.7, mae_weight=0.3)
 
         # ── Param groups ─────────────────────────────────
-        # Three buckets:
-        #   decay       — weights (LinearLayer.weight, conv kernels, …)
-        #   no_decay    — norms, biases, affine params
-        #   curvature   — CurvatureParam.raw_c  (small dedicated weight decay
-        #                 to prevent geometry from drifting in the long tail)
         decay_params     = []
         no_decay_params  = []
         curvature_params = []
@@ -148,12 +143,9 @@ class Trainer:
         for name, p in model.named_parameters():
             if not p.requires_grad:
                 continue
-            # Check if this param lives inside a CurvatureParam module
-            # by walking the module tree to find its owner
             is_curv = False
             for mod_name, mod in model.named_modules():
                 if hasattr(mod, 'is_curvature') and mod.is_curvature:
-                    # Check if p is raw_c of this module
                     for pname, pp in mod.named_parameters(recurse=False):
                         if pp is p:
                             is_curv = True
@@ -174,7 +166,7 @@ class Trainer:
             {'params': decay_params,     'weight_decay': args.weight_decay},
             {'params': no_decay_params,  'weight_decay': 0.0},
             {'params': curvature_params, 'weight_decay': curvature_wd,
-             'lr': args.lr * 0.1},   # lower LR for curvature too
+             'lr': args.lr * 0.1},
         ], lr=args.lr)
 
         steps_per_epoch = len(self.train_loader)
@@ -195,9 +187,9 @@ class Trainer:
             if k != 'TOTAL':
                 print(f"  {k:<20} {v:>8,}")
 
-        n_decay = sum(p.numel() for p in decay_params)
+        n_decay    = sum(p.numel() for p in decay_params)
         n_no_decay = sum(p.numel() for p in no_decay_params)
-        n_curv = sum(p.numel() for p in curvature_params)
+        n_curv     = sum(p.numel() for p in curvature_params)
         print(f"\nParam groups:")
         print(f"  decay        {n_decay:>8,}  (wd={args.weight_decay})")
         print(f"  no_decay     {n_no_decay:>8,}  (wd=0)")
@@ -275,22 +267,22 @@ class Trainer:
                 mask = (horizons == H)
                 x_h  = x[mask]
                 y_h  = y[mask, :H, :]
+
+                # Skip windows where not enough future steps exist
+                if y_h.shape[1] < H:
+                    continue
+
                 if getattr(self.args, "ci", False):
                     C    = x_h.shape[-1]
                     pred = from_ci(self.model(to_ci(x_h), pred_len=H)[0], C)
                 else:
                     pred, _ = self.model(x_h, pred_len=H)
-                if y_h.shape[1] < H:
-                    continue
+
                 batch_loss += self.criterion(pred, y_h).item() * mask.sum().item()
                 n += mask.sum().item()
 
             if n > 0:
-                if n > 0:
                 losses.append(batch_loss / n)
-
-        if not losses:
-            return float('inf')
 
         if not losses:
             return float('inf')
@@ -408,16 +400,12 @@ def parse_args():
     p.add_argument('--train_stride', type=int, default=1)
 
     # Model
-    p.add_argument('--size',            type=str,   default='medium', choices=MODEL_CONFIGS.keys())
-    p.add_argument('--patch_size',      type=int,   default=16)
-    p.add_argument('--patch_stride',    type=int,   default=8)
-    p.add_argument('--dropout',         type=float, default=0.1)
-    p.add_argument('--geo_dropout',     type=float, default=0.2,
-                   help='Dropout on tangent vectors before expmap0 / after logmap0')
-    p.add_argument('--hyp_hidden_scale', type=float, default=1.0,
-                   help='Hyperbolic encoder hidden_dim = d_model * this. '
-                        'Was 2.0 (d_model*2). 1.0 halves encoder params, '
-                        'reducing the main overfitting source.')
+    p.add_argument('--size',             type=str,   default='medium', choices=MODEL_CONFIGS.keys())
+    p.add_argument('--patch_size',       type=int,   default=16)
+    p.add_argument('--patch_stride',     type=int,   default=8)
+    p.add_argument('--dropout',          type=float, default=0.1)
+    p.add_argument('--geo_dropout',      type=float, default=0.2)
+    p.add_argument('--hyp_hidden_scale', type=float, default=1.0)
 
     # Training
     p.add_argument('--epochs',        type=int,   default=50)
@@ -425,8 +413,7 @@ def parse_args():
     p.add_argument('--batch_size',    type=int,   default=32)
     p.add_argument('--lr',            type=float, default=1e-3)
     p.add_argument('--weight_decay',  type=float, default=1e-4)
-    p.add_argument('--curvature_wd',  type=float, default=1e-3,
-                   help='Weight decay for CurvatureParam (separate from main wd)')
+    p.add_argument('--curvature_wd',  type=float, default=1e-3)
     p.add_argument('--patience',      type=int,   default=10)
     p.add_argument('--num_workers',   type=int,   default=0)
 
@@ -443,19 +430,19 @@ def parse_args():
 
 
 def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
-    model_cfg    = MODEL_CONFIGS[args.size]
+    model_cfg     = MODEL_CONFIGS[args.size]
     effective_dim = 1 if getattr(args, 'ci', False) else input_dim
-    d_model      = model_cfg['d_model']
-    hyp_hidden   = max(64, int(d_model * args.hyp_hidden_scale))
+    d_model       = model_cfg['d_model']
+    hyp_hidden    = max(64, int(d_model * args.hyp_hidden_scale))
 
     return HyperTimeV2(
-        input_dim     = effective_dim,
-        seq_len       = args.seq_len,
-        max_pred_len  = horizon,
-        patch_size    = args.patch_size,
-        stride        = args.patch_stride,
-        dropout       = args.dropout,
-        geo_dropout   = args.geo_dropout,
+        input_dim      = effective_dim,
+        seq_len        = args.seq_len,
+        max_pred_len   = horizon,
+        patch_size     = args.patch_size,
+        stride         = args.patch_stride,
+        dropout        = args.dropout,
+        geo_dropout    = args.geo_dropout,
         hyp_hidden_dim = hyp_hidden,
         **model_cfg,
     )
@@ -482,9 +469,12 @@ def train_per_horizon(args, input_dim: int) -> Dict:
 
         model   = build_model(h_args, input_dim, H)
         trainer = Trainer(model, h_args)
+
+        # Skip if val set is too small to form any valid windows
         if len(trainer.val_loader.dataset) == 0:
-            print(f"  [SKIP] H={H}: val set has 0 samples, skipping.")
+            print(f"  [SKIP] H={H}: val set has 0 samples (dataset too small for this horizon).")
             continue
+
         results = trainer.train()
         all_results[H] = results[H]
 

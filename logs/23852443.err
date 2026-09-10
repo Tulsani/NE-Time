@@ -1,0 +1,26 @@
+/gpfs/scratch/an4462/at6646/ne-time-v2/model_no_attn_upd.py:285: UserWarning: Using a target size (torch.Size([1, 423, 8])) that is different to the input size (torch.Size([1, 720, 8])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  mse  = F.mse_loss(pred, target)
+Traceback (most recent call last):
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 524, in <module>
+    main()
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 506, in main
+    results = train_per_horizon(args, input_dim)
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 475, in train_per_horizon
+    results = trainer.train()
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 335, in train
+    val_loss   = self.validate(epoch)
+  File "/gpfs/scratch/an4462/at6646/conda_envs/hypertime/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 283, in validate
+    batch_loss += self.criterion(pred, y_h).item() * mask.sum().item()
+  File "/gpfs/scratch/an4462/at6646/conda_envs/hypertime/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/gpfs/scratch/an4462/at6646/conda_envs/hypertime/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/model_no_attn_upd.py", line 285, in forward
+    mse  = F.mse_loss(pred, target)
+  File "/gpfs/scratch/an4462/at6646/conda_envs/hypertime/lib/python3.10/site-packages/torch/nn/functional.py", line 3338, in mse_loss
+    expanded_input, expanded_target = torch.broadcast_tensors(input, target)
+  File "/gpfs/scratch/an4462/at6646/conda_envs/hypertime/lib/python3.10/site-packages/torch/functional.py", line 76, in broadcast_tensors
+    return _VF.broadcast_tensors(tensors)  # type: ignore[attr-defined]
+RuntimeError: The size of tensor a (720) must match the size of tensor b (423) at non-singleton dimension 1

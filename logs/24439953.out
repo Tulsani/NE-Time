@@ -1,0 +1,27 @@
+================================================
+Job ID:           24439953
+Node:             a100-4006
+Project dir:      /gpfs/scratch/an4462/at6646/ne-time-v2
+Dataset:          ETTm1
+Model size:       medium
+Mode:             multi-horizon (joint training)
+Seq len:          512
+Batch size:       64
+LR:               1e-3
+Patience:         15
+Exp name:         netime_ETTm1_medium_joint
+--- overfitting fixes ---
+geo_dropout:      0.2
+hyp_hidden_scale: 1.0
+curvature_wd:     1e-3
+Start time:       Mon Jun 15 00:12:18 EDT 2026
+================================================
+NVIDIA A100 80GB PCIe, 81920 MiB
+
+Python:     3.10.20
+PyTorch:    2.2.0+cu121
+CUDA:       True
+GPU:        NVIDIA A100 80GB PCIe
+VRAM:       85.1 GB
+
+Starting training (multi-horizon (joint training))...

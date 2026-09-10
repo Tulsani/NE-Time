@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 529, in <module>
+    main()
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 511, in main
+    results = train_per_horizon(args, input_dim)
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 480, in train_per_horizon
+    results = trainer.train()
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 337, in train
+    val_loss   = self.validate(epoch)
+  File "/gpfs/scratch/an4462/at6646/conda_envs/hypertime/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/gpfs/scratch/an4462/at6646/ne-time-v2/train.py", line 288, in validate
+    losses.append(batch_loss / n)
+ZeroDivisionError: float division by zero
