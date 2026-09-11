@@ -36,7 +36,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from typing import Dict, List, Optional
 
 from model_no_attn_upd import HyperTimeV2, HorizonWeightedLoss
-from dataset import create_dataloaders, download_dataset
+from dataset import create_dataloaders, download_dataset, unique_window_loader
 
 
 # ─────────────────────────────────────────────────────────
@@ -95,6 +95,34 @@ def compute_metrics(pred: torch.Tensor, target: torch.Tensor) -> Dict[str, float
     mae  = (p - t).abs().mean().item()
     rmse = math.sqrt(mse)
     return {"MSE": mse, "MAE": mae, "RMSE": rmse}
+
+
+class StreamingMetrics:
+    """O(1)-memory MSE/MAE/RMSE accumulator.
+
+    compute_metrics() requires holding every batch's predictions/targets
+    in memory to torch.cat them at the end, which scales with
+    dataset_size * channels * horizon — the source of a host-RAM OOM on
+    wide-channel zero-shot eval (Traffic, C=862). This accumulates running
+    sums per batch instead, giving identical MSE/MAE (mean over all
+    elements) without ever materializing the full prediction tensor.
+    """
+
+    def __init__(self):
+        self.sum_sq  = 0.0
+        self.sum_abs = 0.0
+        self.n       = 0
+
+    def update(self, pred: torch.Tensor, target: torch.Tensor):
+        diff = (pred.detach().float() - target.detach().float())
+        self.sum_sq  += diff.pow(2).sum().item()
+        self.sum_abs += diff.abs().sum().item()
+        self.n       += diff.numel()
+
+    def compute(self) -> Dict[str, float]:
+        mse = self.sum_sq / max(self.n, 1)
+        mae = self.sum_abs / max(self.n, 1)
+        return {"MSE": mse, "MAE": mae, "RMSE": math.sqrt(mse)}
 
 
 class CSVLogger:
@@ -319,10 +347,11 @@ class Trainer:
 
         self.model.eval()
         results = {}
+        eval_loader = unique_window_loader(self.test_loader, self.test_loader.batch_size)
 
         for H in horizons:
-            preds_all, targets_all = [], []
-            for batch in self.test_loader:
+            metrics_acc = StreamingMetrics()
+            for batch in eval_loader:
                 x = batch['x'].to(self.device)
                 y = batch['y'].to(self.device)
                 if getattr(self.args, "ci", False):
@@ -330,12 +359,9 @@ class Trainer:
                     pred = from_ci(self.model(to_ci(x), pred_len=H)[0], C)
                 else:
                     pred, _ = self.model(x, pred_len=H)
-                preds_all.append(pred.cpu())
-                targets_all.append(y[:, :H, :].cpu())
+                metrics_acc.update(pred.cpu(), y[:, :H, :].cpu())
 
-            preds   = torch.cat(preds_all,   dim=0)
-            targets = torch.cat(targets_all, dim=0)
-            metrics = compute_metrics(preds, targets)
+            metrics = metrics_acc.compute()
             results[H] = metrics
             print(f"  H={H:4d}  MSE={metrics['MSE']:.5f}  "
                   f"MAE={metrics['MAE']:.5f}  RMSE={metrics['RMSE']:.5f}")

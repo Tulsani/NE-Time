@@ -27,10 +27,10 @@ import numpy as np
 import torch
 
 from model_no_attn_upd import HorizonWeightedLoss
-from dataset import create_dataloaders
+from dataset import create_dataloaders, unique_window_loader
 from train import (
     MODEL_CONFIGS, build_model, build_optimizer_and_scheduler,
-    to_ci, from_ci, compute_metrics, CSVLogger, EarlyStopping,
+    to_ci, from_ci, StreamingMetrics, CSVLogger, EarlyStopping,
 )
 
 
@@ -87,23 +87,24 @@ def evaluate_dataset(model, test_loader, horizons, device, dataset_name):
 
     model.eval()
     results = {}
+    eval_loader = unique_window_loader(test_loader, test_loader.batch_size)
+
     for H in horizons:
-        preds_all, targets_all = [], []
-        for batch in test_loader:
+        metrics_acc = StreamingMetrics()
+        n_batches = 0
+        for batch in eval_loader:
             x = batch['x'].to(device)
             y = batch['y'].to(device)
             C = x.shape[-1]
             pred = from_ci(model(to_ci(x), pred_len=H)[0], C)
-            preds_all.append(pred.cpu())
-            targets_all.append(y[:, :H, :].cpu())
+            metrics_acc.update(pred.cpu(), y[:, :H, :].cpu())
+            n_batches += 1
 
-        if not preds_all:
+        if n_batches == 0:
             print(f"  [SKIP] {dataset_name} H={H}: no batches.")
             continue
 
-        preds   = torch.cat(preds_all, dim=0)
-        targets = torch.cat(targets_all, dim=0)
-        metrics = compute_metrics(preds, targets)
+        metrics = metrics_acc.compute()
         results[H] = metrics
         print(f"  {dataset_name:<10} H={H:4d}  MSE={metrics['MSE']:.5f}  "
               f"MAE={metrics['MAE']:.5f}  RMSE={metrics['RMSE']:.5f}")

@@ -29,7 +29,7 @@ import os
 import urllib.request
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from sklearn.preprocessing import StandardScaler
 from typing import List, Optional, Tuple
 
@@ -240,6 +240,29 @@ def collate_fn(batch):
     y       = torch.stack([b["y"] for b in batch])
     horizon = torch.tensor([b["horizon"] for b in batch], dtype=torch.long)
     return {"x": x, "y": y, "horizon": horizon}
+
+
+def unique_window_loader(loader: DataLoader, batch_size: Optional[int] = None) -> DataLoader:
+    """Dedupe an eval DataLoader down to one row per window.
+
+    TimeSeriesDataset.__len__ is len(indices) * len(horizons): each window
+    gets one row per horizon label, but the label only affects how far into
+    `y` a caller slices — `x` (and the full-length `y`) is identical across
+    a window's len(horizons) copies. Eval code re-slices y[:, :H, :] itself
+    and never reads the label, so iterating the raw loader once per H
+    forwards every window len(horizons) times *per H* — a len(horizons)**2
+    blowup. On wide-channel zero-shot sets (e.g. Traffic, C=862) that extra
+    factor was enough to OOM host RAM. This selects the hor_idx==0 copy of
+    every window, so each window is forwarded exactly once per H.
+    """
+    ds = loader.dataset
+    n_h = len(ds.horizons)
+    sub_indices = list(range(0, len(ds), n_h))
+    subset = Subset(ds, sub_indices)
+    return DataLoader(
+        subset, batch_size=batch_size or loader.batch_size, shuffle=False,
+        collate_fn=collate_fn,
+    )
 
 
 # ─────────────────────────────────────────────────────────
