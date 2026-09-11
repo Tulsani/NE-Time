@@ -43,6 +43,7 @@ WARMUP_EPOCHS=${WARMUP_EPOCHS:-3}
 BATCH_SIZE=${BATCH_SIZE:-32}
 LR=${LR:-1e-3}
 PATIENCE=${PATIENCE:-15}
+SIZE_WEIGHTED_SAMPLING=${SIZE_WEIGHTED_SAMPLING:-false}
 
 # Overfitting-fix knobs (see train.py / model_no_attn_upd.py for details)
 GEO_DROPOUT=${GEO_DROPOUT:-0.2}
@@ -76,6 +77,7 @@ echo "Batch size:          ${BATCH_SIZE}"
 echo "Epochs:              ${EPOCHS}"
 echo "LR:                  ${LR}"
 echo "Patience:            ${PATIENCE}"
+echo "Size-weighted sampl: ${SIZE_WEIGHTED_SAMPLING}"
 echo "Exp name:            ${EXP_NAME}"
 echo "--- overfitting fixes ---"
 echo "geo_dropout:         ${GEO_DROPOUT}"
@@ -113,6 +115,11 @@ echo "Starting foundation pretraining..."
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
+EXTRA_ARGS=()
+if [ "${SIZE_WEIGHTED_SAMPLING}" = "true" ]; then
+    EXTRA_ARGS+=(--size_weighted_sampling)
+fi
+
 python train_foundation.py \
     --pretrain_datasets  ${PRETRAIN_DATASETS} \
     --zero_shot_datasets ${ZERO_SHOT_DATASETS} \
@@ -134,7 +141,8 @@ python train_foundation.py \
     --hyp_hidden_scale   ${HYP_HIDDEN_SCALE} \
     --curvature_wd       ${CURVATURE_WD} \
     --exp_name           ${EXP_NAME} \
-    --output_dir         ${PROJECT_DIR}/outputs_foundation
+    --output_dir         ${PROJECT_DIR}/outputs_foundation \
+    "${EXTRA_ARGS[@]}"
 
 echo ""
 echo "================================================"

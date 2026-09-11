@@ -123,6 +123,13 @@ def parse_args():
     p.add_argument('--seq_len',   type=int, default=336)
     p.add_argument('--horizons',  type=int, nargs='+', default=[96, 192, 336, 720])
     p.add_argument('--train_stride', type=int, default=1)
+    p.add_argument('--size_weighted_sampling', action='store_true',
+                    help='Sample each pretrain dataset per training step proportional to '
+                         "its own train-batch count, instead of uniformly. Default (off) "
+                         'gives every dataset equal per-step probability regardless of size, '
+                         'which over-revisits small datasets relative to large ones (e.g. '
+                         'ETTh1/ETTh2 vs ETTm1, ~4.3x) and was linked to an early val_loss '
+                         'overfitting plateau.')
 
     p.add_argument('--size',            type=str,   default='medium', choices=MODEL_CONFIGS.keys())
     p.add_argument('--patch_size',      type=int,   default=16)
@@ -203,8 +210,16 @@ def main():
     rng = np.random.default_rng(args.seed)
     best_val = float('inf')
 
+    if args.size_weighted_sampling:
+        raw_weights = np.array([len(pretrain[n]['train']) for n in names], dtype=np.float64)
+        dataset_weights = raw_weights / raw_weights.sum()
+    else:
+        dataset_weights = np.full(len(names), 1.0 / len(names))
+
     print("\n" + "=" * 55)
     print(f"Foundation pretraining: {names} -> zero-shot on {args.zero_shot_datasets}")
+    print(f"Per-step dataset sampling ({'size-weighted' if args.size_weighted_sampling else 'uniform'}): "
+          + ", ".join(f"{n}={w:.3f}" for n, w in zip(names, dataset_weights)))
     print("=" * 55)
 
     for epoch in range(1, args.epochs + 1):
@@ -213,7 +228,10 @@ def main():
         epoch_losses = []
 
         for step in range(steps_per_epoch):
-            name = names[rng.integers(len(names))]  # uniform over datasets, not size-weighted
+            # dataset_weights is uniform unless --size_weighted_sampling is set (see above) —
+            # equal per-step probability over-revisits small pretrain sets relative to large
+            # ones (measured ~4.3x for ETTh1/ETTh2 vs ETTm1), a candidate early-overfit driver.
+            name = names[rng.choice(len(names), p=dataset_weights)]
             batch = pretrain[name]['train_inf'].next()
 
             avg_loss, _ = batch_loss_and_count(model, batch, args, criterion, device)
