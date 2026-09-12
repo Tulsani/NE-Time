@@ -115,6 +115,7 @@ class HyperTimeV2(nn.Module):
         dropout:        float = 0.1,
         geo_dropout:    float = 0.2,      # NEW: tangent-space dropout
         hyp_hidden_dim: int   = None,     # NEW: encoder hidden dim (default=d_model)
+        proj_hidden:    int   = 64,       # NEW: TemporalProjector bottleneck width (was hardcoded)
         c_global_init:  float = 0.5,
         c_meso_init:    float = 1.0,
         c_local_init:   float = 2.0,
@@ -176,7 +177,7 @@ class HyperTimeV2(nn.Module):
             d_model=d_model,
             cond_dim=cond_dim,
             max_pred_len=max_pred_len,
-            proj_hidden=64,
+            proj_hidden=proj_hidden,
             dropout=dropout,
         )
 

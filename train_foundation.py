@@ -137,6 +137,9 @@ def parse_args():
     p.add_argument('--dropout',         type=float, default=0.1)
     p.add_argument('--geo_dropout',     type=float, default=0.2)
     p.add_argument('--hyp_hidden_scale', type=float, default=1.0)
+    p.add_argument('--proj_hidden',     type=int,   default=64,
+                    help='TemporalProjector bottleneck width (was hardcoded 64). See '
+                         'train.py --proj_hidden help for the shortcut-hypothesis rationale.')
 
     p.add_argument('--epochs',        type=int,   default=50)
     p.add_argument('--warmup_epochs', type=int,   default=3)

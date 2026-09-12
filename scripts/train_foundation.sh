@@ -49,6 +49,7 @@ SIZE_WEIGHTED_SAMPLING=${SIZE_WEIGHTED_SAMPLING:-false}
 GEO_DROPOUT=${GEO_DROPOUT:-0.2}
 HYP_HIDDEN_SCALE=${HYP_HIDDEN_SCALE:-1.0}
 CURVATURE_WD=${CURVATURE_WD:-1e-3}
+PROJ_HIDDEN=${PROJ_HIDDEN:-64}
 
 EXP_NAME=${EXP_NAME:-foundation_${MODEL_SIZE}}
 
@@ -83,6 +84,7 @@ echo "--- overfitting fixes ---"
 echo "geo_dropout:         ${GEO_DROPOUT}"
 echo "hyp_hidden_scale:    ${HYP_HIDDEN_SCALE}"
 echo "curvature_wd:        ${CURVATURE_WD}"
+echo "proj_hidden:         ${PROJ_HIDDEN}"
 echo "Start time:          $(date)"
 echo "================================================"
 
@@ -140,6 +142,7 @@ python train_foundation.py \
     --geo_dropout        ${GEO_DROPOUT} \
     --hyp_hidden_scale   ${HYP_HIDDEN_SCALE} \
     --curvature_wd       ${CURVATURE_WD} \
+    --proj_hidden        ${PROJ_HIDDEN} \
     --exp_name           ${EXP_NAME} \
     --output_dir         ${PROJECT_DIR}/outputs_foundation \
     "${EXTRA_ARGS[@]}"

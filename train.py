@@ -455,6 +455,15 @@ def parse_args():
                    help='Hyperbolic encoder hidden_dim = d_model * this. '
                         'Was 2.0 (d_model*2). 1.0 halves encoder params, '
                         'reducing the main overfitting source.')
+    p.add_argument('--proj_hidden', type=int, default=64,
+                   help='TemporalProjector bottleneck width (patch_compress/time_expand '
+                        'hidden dim). Was hardcoded to 64 regardless of --size. The '
+                        'MultiScaleDecomposer was previously found to let the model '
+                        'shortcut past the hyperbolic encoders (best val always at epoch 1 '
+                        '— see FixedMADecomposer docstring in decomposition_upd.py); '
+                        'TemporalProjector sits in the same kind of position (plain '
+                        'Euclidean compress-then-expand, right before the output), so this '
+                        'flag lets that be tested as a capacity lever too.')
 
     # Training
     p.add_argument('--epochs',        type=int,   default=50)
@@ -494,6 +503,7 @@ def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
         dropout       = args.dropout,
         geo_dropout   = args.geo_dropout,
         hyp_hidden_dim = hyp_hidden,
+        proj_hidden   = getattr(args, 'proj_hidden', 64),
         **model_cfg,
     )
 
