@@ -426,6 +426,7 @@ class Trainer:
 # ─────────────────────────────────────────────────────────
 
 MODEL_CONFIGS = {
+    'tiny':   dict(d_model=48,  hyp_dim=24, cond_dim=24),  # ~50.7K params w/ --proj_hidden 24
     'nano':   dict(d_model=64,  hyp_dim=32, cond_dim=32),
     'micro':  dict(d_model=96,  hyp_dim=48, cond_dim=48),
     'small':  dict(d_model=64,  hyp_dim=32, cond_dim=32),
@@ -492,7 +493,11 @@ def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
     model_cfg    = MODEL_CONFIGS[args.size]
     effective_dim = 1 if getattr(args, 'ci', False) else input_dim
     d_model      = model_cfg['d_model']
-    hyp_hidden   = max(64, int(d_model * args.hyp_hidden_scale))
+    # Floor was max(64, ...), tuned back when every preset had d_model>=64 so it
+    # never actually engaged. 'tiny' (d_model=48) is the first to hit it, which
+    # would silently inflate hyp_hidden_dim past what --hyp_hidden_scale asked
+    # for (48*1.0 -> forced to 64). Lowered to a true degenerate-config guard.
+    hyp_hidden   = max(8, int(d_model * args.hyp_hidden_scale))
 
     return HyperTimeV2(
         input_dim     = effective_dim,
