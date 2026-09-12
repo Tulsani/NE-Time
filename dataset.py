@@ -74,6 +74,13 @@ DATASET_SPLITS = {
     "ETTh2": (0.6, 0.2, 0.2),
     "ETTm1": (0.6, 0.2, 0.2),
     "ETTm2": (0.6, 0.2, 0.2),
+    # Exchange is tiny (7,588 rows): under the default 70/10/20 split, val gets only
+    # 759 rows, less than seq_len+max_horizon(=1056), giving ZERO val windows. Harmless
+    # as a zero-shot-only target (only its test split is used), but breaks joint
+    # pretraining (a pretrain dataset with 0 val batches poisons the val_loss average —
+    # see train_foundation.py's finite-value guard). Same small-dataset convention as
+    # the ETT family gives it a working, appropriately-sized val split.
+    "Exchange": (0.6, 0.2, 0.2),
     # All other datasets use 70/10/20
 }
 DEFAULT_SPLIT = (0.7, 0.1, 0.2)

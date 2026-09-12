@@ -263,8 +263,21 @@ def main():
                     if n > 0:
                         losses.append(loss.item())
                 per_ds_val[name] = float(np.mean(losses)) if losses else float('inf')
+                if not losses:
+                    print(f"  [WARN] {name}: 0 val batches this epoch — excluded from "
+                          f"val_loss average (check its split ratio in dataset.py if this "
+                          f"is unexpected).")
 
-        val_loss = float(np.mean(list(per_ds_val.values())))
+        # Exclude datasets with 0 val batches (inf) rather than let one poison the whole
+        # average — an all-inf epoch would mean no checkpoint is ever saved and the final
+        # torch.load(ckpt_path) crashes after the full training budget is spent.
+        finite_vals = [v for v in per_ds_val.values() if np.isfinite(v)]
+        if not finite_vals:
+            raise RuntimeError(
+                "Every pretrain dataset had 0 val batches this epoch — nothing to "
+                "validate on. Check seq_len/max_horizon vs. each dataset's val split size."
+            )
+        val_loss = float(np.mean(finite_vals))
         print(f"Epoch {epoch} — val loss (avg over datasets): {val_loss:.5f}  "
               f"({', '.join(f'{k}={v:.5f}' for k, v in per_ds_val.items())})")
 
