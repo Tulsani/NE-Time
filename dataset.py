@@ -78,9 +78,15 @@ DATASET_SPLITS = {
     # 759 rows, less than seq_len+max_horizon(=1056), giving ZERO val windows. Harmless
     # as a zero-shot-only target (only its test split is used), but breaks joint
     # pretraining (a pretrain dataset with 0 val batches poisons the val_loss average —
-    # see train_foundation.py's finite-value guard). Same small-dataset convention as
-    # the ETT family gives it a working, appropriately-sized val split.
-    "Exchange": (0.6, 0.2, 0.2),
+    # see train_foundation.py's finite-value guard). 20% val keeps a working, stable
+    # split (461 windows); shifted train up from 60%->70% (test down to 10%, occasionally
+    # 0 windows — acceptable since Exchange is now pretrain-only, its in-domain test
+    # score isn't the point; evaluate_dataset already skips gracefully on 0 test samples).
+    "Exchange": (0.7, 0.2, 0.1),
+    # Weather is large enough (52,696 rows) that val/test are never in danger of being
+    # degenerate even with a bigger train share — bumped train 70%->80% since it's now
+    # pretrain-only too, for ~15% more train batches at no risk.
+    "Weather": (0.8, 0.1, 0.1),
     # All other datasets use 70/10/20
 }
 DEFAULT_SPLIT = (0.7, 0.1, 0.2)
