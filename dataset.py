@@ -245,6 +245,104 @@ class TimeSeriesDataset(Dataset):
 
 
 # ─────────────────────────────────────────────────────────
+#  Imputation dataset
+# ─────────────────────────────────────────────────────────
+
+class ImputationDataset(Dataset):
+    """Sliding-window dataset for imputation fine-tuning/eval.
+
+    Each item is a single seq_len window with contiguous mask_chunk_len-step chunks
+    randomly zeroed out until ~mask_ratio of the window is masked — matching MOMENT's
+    protocol (mask contiguous length-8 sub-sequences at ratios {12.5%, 25%, 37.5%, 50%}).
+    Unlike TimeSeriesDataset there's no forecast horizon: this reconstructs the same
+    window it's given, so there's only ever one "horizon" (seq_len itself).
+
+    Returns per item:
+        x_masked: [seq_len, C]  masked input (zeros at masked positions)
+        x_orig:   [seq_len, C]  original values (ground truth, for loss on masked positions)
+        mask:     [seq_len, C]  1=observed, 0=masked (broadcast across channels)
+    """
+
+    def __init__(
+        self,
+        data:           np.ndarray,
+        seq_len:        int,
+        mask_ratio:     float,
+        split:          str   = "train",
+        train_ratio:    float = 0.7,
+        val_ratio:      float = 0.1,
+        test_ratio:     float = 0.2,
+        stride:         int   = 1,
+        mask_chunk_len: int   = 8,
+        seed:           int   = 42,
+    ):
+        self.seq_len        = seq_len
+        self.mask_ratio      = mask_ratio
+        self.mask_chunk_len  = mask_chunk_len
+
+        T = len(data)
+        train_end = int(T * train_ratio)
+        val_end   = int(T * (train_ratio + val_ratio))
+
+        if split == "train":
+            raw = data[:train_end]
+        elif split == "val":
+            raw = data[train_end:val_end]
+        else:
+            raw = data[val_end:]
+
+        self.scaler = StandardScaler()
+        self.scaler.fit(raw)
+        self.data = self.scaler.transform(raw).astype(np.float32)
+
+        max_start = len(self.data) - seq_len
+        self.indices = list(range(0, max_start + 1, stride)) if max_start >= 0 else []
+        # Per-instance RNG (not shared/global) so train/val/test splits and repeated
+        # __getitem__ calls on the same idx are reproducible given a fixed seed, while
+        # different dataset instances (e.g. different mask_ratio) don't share state.
+        self._rng = np.random.default_rng(seed)
+
+    def __len__(self):
+        return len(self.indices)
+
+    def _make_mask(self, T: int) -> np.ndarray:
+        mask = np.ones(T, dtype=np.float32)
+        n_target = int(T * self.mask_ratio)
+        n_masked = 0
+        # Bounded attempts (not a while-True) so a pathological T/ratio combo can't hang —
+        # converges to approximately, not exactly, n_target since chunks can overlap.
+        for _ in range(T * 4):
+            if n_masked >= n_target:
+                break
+            start = self._rng.integers(0, max(1, T - self.mask_chunk_len + 1))
+            end = min(T, start + self.mask_chunk_len)
+            newly = mask[start:end].sum()
+            mask[start:end] = 0
+            n_masked += int(newly)
+        return mask
+
+    def __getitem__(self, idx: int):
+        start = self.indices[idx]
+        x = self.data[start : start + self.seq_len]
+        m1d = self._make_mask(self.seq_len)
+        mask = np.broadcast_to(m1d[:, None], x.shape).astype(np.float32)
+        x_masked = x * mask
+        return {
+            "x_masked": torch.from_numpy(x_masked.copy()),
+            "x_orig":   torch.from_numpy(x.copy()),
+            "mask":     torch.from_numpy(mask.copy()),
+        }
+
+
+def collate_fn_imputation(batch):
+    return {
+        "x_masked": torch.stack([b["x_masked"] for b in batch]),
+        "x_orig":   torch.stack([b["x_orig"] for b in batch]),
+        "mask":     torch.stack([b["mask"] for b in batch]),
+    }
+
+
+# ─────────────────────────────────────────────────────────
 #  Collate
 # ─────────────────────────────────────────────────────────
 

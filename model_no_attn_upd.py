@@ -86,6 +86,61 @@ class TemporalProjector(nn.Module):
 
 
 # ─────────────────────────────────────────────────────────
+#  Patch Unfold — reconstruction head for imputation
+# ─────────────────────────────────────────────────────────
+
+class PatchUnfold(nn.Module):
+    """Inverse of PatchEmbedding: patch-space [B, num_patches, d_model] -> reconstructed
+    timestep-space [B, seq_len, out_dim].
+
+    Unlike TemporalProjector (which compresses all patches into one global summary and
+    expands it to arbitrary future timesteps, needed for forecasting beyond the input
+    window), imputation reconstructs the *same* seq_len positions the patches already
+    cover — so each patch is projected directly back to its own patch_size timesteps via
+    a per-patch linear map, and overlapping patches (stride < patch_size) are folded back
+    together by averaging. A local, structurally simpler inverse than TemporalProjector's
+    global compress-then-expand, matching what the task actually needs.
+    """
+
+    def __init__(self, seq_len: int, patch_size: int, stride: int, num_patches: int,
+                 d_model: int, out_dim: int, dropout: float = 0.1):
+        super().__init__()
+        self.seq_len     = seq_len
+        self.patch_size  = patch_size
+        self.stride      = stride
+        self.num_patches = num_patches
+        self.out_dim     = out_dim
+
+        self.proj = nn.Sequential(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, patch_size * out_dim),
+        )
+        self.dropout = nn.Dropout(dropout)
+
+        # How many patches cover each timestep, precomputed once — divides the summed
+        # overlap-add contributions down to an average. Registered as a buffer (not a
+        # parameter) so it moves with .to(device) but never gets gradients/optimizer state.
+        counts = torch.zeros(seq_len)
+        for p in range(num_patches):
+            start = p * stride
+            counts[start:start + patch_size] += 1
+        self.register_buffer('counts', counts.clamp(min=1))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """x: [B, num_patches, d_model] -> [B, seq_len, out_dim]"""
+        B = x.shape[0]
+        x = self.dropout(self.proj(x))                                   # [B, num_patches, patch_size*out_dim]
+        x = x.view(B, self.num_patches, self.patch_size, self.out_dim)
+
+        out = torch.zeros(B, self.seq_len, self.out_dim, device=x.device, dtype=x.dtype)
+        for p in range(self.num_patches):
+            start = p * self.stride
+            out[:, start:start + self.patch_size, :] = \
+                out[:, start:start + self.patch_size, :] + x[:, p, :, :]
+        return out / self.counts.view(1, -1, 1)
+
+
+# ─────────────────────────────────────────────────────────
 #  Main model
 # ─────────────────────────────────────────────────────────
 
@@ -205,17 +260,37 @@ class HyperTimeV2(nn.Module):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
 
-    def forward(
+    def encode_patches(
         self,
         x: torch.Tensor,
-        pred_len: Optional[int] = None,
-        return_intermediates: bool = False,
-    ) -> Tuple[torch.Tensor, Dict]:
-        if pred_len is None:
-            pred_len = self.max_pred_len
+        mask: Optional[torch.Tensor] = None,
+        cond_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Dict]:
+        """Shared encoder path: [B,T,C] -> patch-space representation [B,num_patches,d_model].
+
+        Factored out of forward() so other task heads (e.g. an imputation reconstruction
+        head) can reuse the identical RevIN -> patch_embed -> decomposer -> hyperbolic
+        encode/fuse/decode pipeline with a different output head, without duplicating it.
+
+        `mask` (optional, [B,T,C] or [B,T,1], 1=observed/0=masked) is forwarded to RevIN so
+        per-instance normalization stats aren't biased by masked-out (zeroed) positions —
+        matters for imputation, irrelevant (mask=None) for forecasting.
+
+        `cond_len` selects which trained horizon-conditioning to reuse for scale-mixing.
+        For forecasting this is the actual target `pred_len`. Imputation has no real
+        "horizon" — it defaults to `self.seq_len` (336, itself one of the four pretrained
+        horizons), repurposing the model's learned 336-step scale-mixing preference for
+        reconstruction rather than forecasting, without needing any new fusion params.
+
+        Returns (euclidean, cond, scale_weights, intermediates) — intermediates carries
+        h_global/h_meso/h_local/h_fused, matching what forward()'s `return_intermediates`
+        used to expose directly.
+        """
+        if cond_len is None:
+            cond_len = self.seq_len
         B, T, C = x.shape
 
-        x = self.revin.normalise(x)
+        x = self.revin.normalise(x, mask=mask)
         patches = self.patch_embed(x)
 
         g_patches, m_patches, l_patches = self.decomposer(patches)
@@ -224,7 +299,7 @@ class HyperTimeV2(nn.Module):
         h_meso   = self.enc_meso(m_patches)
         h_local  = self.enc_local(l_patches)
 
-        scale_weights, cond = self.horizon_enc(pred_len, B, x.device)
+        scale_weights, cond = self.horizon_enc(cond_len, B, x.device)
         scale_weights_exp   = scale_weights.unsqueeze(1).expand(-1, patches.shape[1], -1)
 
         h_fused   = tangent_space_fusion(
@@ -232,6 +307,23 @@ class HyperTimeV2(nn.Module):
 
         h_fused   = self.fusion_drop(h_fused)
         euclidean = self.decoder(h_fused)
+
+        intermediates = {
+            'h_global': h_global.detach(), 'h_meso': h_meso.detach(),
+            'h_local': h_local.detach(), 'h_fused': h_fused.detach(),
+        }
+        return euclidean, cond, scale_weights, intermediates
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        pred_len: Optional[int] = None,
+        return_intermediates: bool = False,
+    ) -> Tuple[torch.Tensor, Dict]:
+        if pred_len is None:
+            pred_len = self.max_pred_len
+
+        euclidean, cond, scale_weights, intermediates = self.encode_patches(x, cond_len=pred_len)
 
         temporal  = self.temporal_proj(euclidean, cond, pred_len)
         out       = self.out_proj(temporal)
@@ -246,10 +338,7 @@ class HyperTimeV2(nn.Module):
             }
         }
         if return_intermediates:
-            info['h_global'] = h_global.detach()
-            info['h_meso']   = h_meso.detach()
-            info['h_local']  = h_local.detach()
-            info['h_fused']  = h_fused.detach()
+            info.update(intermediates)
 
         return out, info
 

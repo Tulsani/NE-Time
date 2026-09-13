@@ -39,10 +39,22 @@ class RevIN(nn.Module):
         self._mean = None
         self._std = None
 
-    def normalise(self, x: torch.Tensor) -> torch.Tensor:
-        """x: [B, T, C]  →  normalised [B, T, C]"""
-        self._mean = x.mean(dim=1, keepdim=True).detach()
-        self._std = x.std(dim=1, keepdim=True, unbiased=False).clamp(min=self.eps).detach()
+    def normalise(self, x: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
+        """x: [B, T, C]  →  normalised [B, T, C]
+
+        `mask` (optional, [B, T, C] or [B, T, 1], 1=observed / 0=masked-out): when given,
+        per-instance mean/std are computed over observed positions only, so zeroed-out
+        masked positions (as used for imputation) don't bias the normalization statistics.
+        """
+        if mask is None:
+            self._mean = x.mean(dim=1, keepdim=True).detach()
+            self._std = x.std(dim=1, keepdim=True, unbiased=False).clamp(min=self.eps).detach()
+        else:
+            denom = mask.sum(dim=1, keepdim=True).clamp(min=1)
+            mean = (x * mask).sum(dim=1, keepdim=True) / denom
+            var = ((x - mean) ** 2 * mask).sum(dim=1, keepdim=True) / denom
+            self._mean = mean.detach()
+            self._std = var.clamp(min=self.eps ** 2).sqrt().detach()
         x = (x - self._mean) / self._std
         if self.affine:
             x = x * self.gamma + self.beta
