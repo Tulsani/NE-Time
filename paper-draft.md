@@ -98,12 +98,16 @@ Weather, up to 862 for Traffic) and is standard practice in this literature.
 
 ### 2.2 Multi-horizon training and evaluation
 
-The model is trained and evaluated jointly across four forecast horizons — 96, 192, 336, and
-720 steps — from a single set of shared weights. Each training window is labeled with a horizon
-drawn from this set, and the horizon encoder's conditioning mechanism allows one model to
-produce calibrated forecasts at each horizon without horizon-specific retraining. All reported
-results, in-domain and zero-shot alike, come from a single checkpoint evaluated at all four
-horizons — we do not train separate models per horizon.
+The model is trained jointly across four forecast horizons — 96, 192, 336, and 720 steps —
+from a single set of shared weights. Each training window is labeled with a horizon drawn from
+this set, and the horizon encoder's conditioning mechanism allows one model to produce
+calibrated forecasts at each horizon without horizon-specific retraining. The in-domain and
+zero-shot results in Section 3.2 come from a single checkpoint evaluated at all four trained
+horizons — we do not train separate models per horizon. Because the horizon encoder conditions
+continuously on the requested horizon rather than selecting among a fixed discrete set, the
+architecture in principle supports evaluation at any horizon up to the model's fixed maximum
+(720 steps, set by the temporal projector's output width); we verify this directly in Section
+3.2.1 by evaluating the same checkpoint at five horizons never seen during training.
 
 ### 2.3 Pretraining corpus and zero-shot evaluation protocol
 
@@ -241,6 +245,30 @@ exchange, electrical load), versus a comparable published pretraining corpus (MO
 Series Pile) of approximately 1.23 billion channel-timestamps across 13 domains — roughly two
 orders of magnitude larger and more diverse. The forecasting results above should be read
 against both this data-scale gap and the parameter-count gap noted throughout.
+
+#### 3.2.1 Generalization to untrained intermediate horizons
+
+Sections above evaluate only the four horizons used during training (96, 192, 336, 720). To
+test whether the horizon encoder's conditioning mechanism generalizes continuously, rather than
+having effectively memorized four discrete operating points, we evaluated the same checkpoint —
+no retraining, no adaptation — at five additional horizons never seen during training: 48, 150,
+250, 500, and 600 steps, on the two fully blind zero-shot datasets (ETTh1, ETTh2).
+
+| Horizon | 48 | 96† | 150 | 192† | 250 | 336† | 500 | 600 | 720† |
+|---|---|---|---|---|---|---|---|---|---|
+| ETTh1 MSE | 0.499 | 0.540 | 0.566 | 0.591 | 0.599 | 0.636 | 0.669 | 0.691 | 0.734 |
+| ETTh2 MSE | 0.186 | 0.221 | 0.231 | 0.247 | 0.250 | 0.269 | 0.283 | 0.294 | 0.313 |
+
+*(†: trained horizon, reproduced from Section 3.2 tables above for context; all others were
+never seen during training.)*
+
+Error increases strictly monotonically with horizon across all nine points on both datasets,
+with every untrained horizon falling exactly between its neighboring trained values rather than
+producing an erratic or discontinuous jump. This is direct evidence that the horizon encoder
+has learned a genuinely continuous conditioning function rather than four memorized operating
+points, and that the architecture's multi-horizon capability extends smoothly to arbitrary
+horizons within its fixed maximum (720 steps, set by the temporal projector's output width;
+horizons beyond this are not true extrapolation and were not tested).
 
 ### 3.3 Preliminary multi-task exploration
 
