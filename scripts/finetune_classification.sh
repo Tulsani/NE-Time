@@ -15,16 +15,19 @@
 #   pip install -q aeon
 #   python download_classification_data.py
 #
-# Default run (6 small, commonly-cited univariate UCR datasets):
+# Default run (frozen embeddings + SVM, MOMENT's protocol, 8 UCR datasets — 5
+# domain-mismatched + 3 domain-matched power/electricity-consumption sets):
 #   sbatch scripts/finetune_classification.sh
+#
+# Fine-tuned protocol instead (unfreeze backbone + train a small head via cross-entropy,
+# mirroring the fix that helped imputation):
+#   FINETUNE_BACKBONE=true sbatch scripts/finetune_classification.sh
 #
 # Override checkpoint / datasets:
 #   CKPT_NAME=nano_wecm1_sw_lr3e4 sbatch scripts/finetune_classification.sh
-#   DATASETS="Chinatown ECG200" sbatch scripts/finetune_classification.sh
+#   DATASETS="PowerCons ElectricDevices" sbatch scripts/finetune_classification.sh
 #
-# See finetune_classification.py for full protocol details (MOMENT's own approach:
-# frozen backbone as a feature extractor, mean-pooled embeddings, off-the-shelf SVM —
-# no new training loop).
+# See finetune_classification.py for full protocol details.
 
 set -e
 
@@ -35,9 +38,13 @@ PROJECT_DIR=${SLURM_SUBMIT_DIR}
 
 # ── Config ────────────────────────────────────────────────────────────────
 CKPT_NAME=${CKPT_NAME:-nano_wecm1_sw_lr3e4}
-DATASETS=${DATASETS:-"Chinatown ECG200 GunPoint ItalyPowerDemand Coffee TwoLeadECG"}
+DATASETS=${DATASETS:-"Chinatown ECG200 GunPoint Coffee TwoLeadECG ItalyPowerDemand PowerCons ElectricDevices"}
 SVM_C=${SVM_C:-1.0}
 SVM_KERNEL=${SVM_KERNEL:-rbf}
+FINETUNE_BACKBONE=${FINETUNE_BACKBONE:-false}
+EPOCHS=${EPOCHS:-15}
+LR=${LR:-1e-3}
+BACKBONE_LR=${BACKBONE_LR:-1e-4}
 EXP_NAME=${EXP_NAME:-classification_${CKPT_NAME}}
 
 # ── Environment ───────────────────────────────────────────────────────────
@@ -70,6 +77,8 @@ echo "Project dir:         ${PROJECT_DIR}"
 echo "Backbone checkpoint: ${CKPT_PATH}"
 echo "Datasets:            ${DATASETS}"
 echo "SVM C / kernel:      ${SVM_C} / ${SVM_KERNEL}"
+echo "Finetune backbone:   ${FINETUNE_BACKBONE}"
+echo "Epochs / LR / bb_LR: ${EPOCHS} / ${LR} / ${BACKBONE_LR}"
 echo "Exp name:            ${EXP_NAME}"
 echo "Start time:          $(date)"
 echo "================================================"
@@ -78,14 +87,23 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 echo ""
 
 # ── Run ───────────────────────────────────────────────────────────────────
+EXTRA_ARGS=()
+if [ "${FINETUNE_BACKBONE}" = "true" ]; then
+    EXTRA_ARGS+=(--finetune_backbone)
+fi
+
 python finetune_classification.py \
     --ckpt        "${CKPT_PATH}" \
     --datasets    ${DATASETS} \
     --data_path   ${PROJECT_DIR}/data/aeon_data \
     --svm_C       ${SVM_C} \
     --svm_kernel  ${SVM_KERNEL} \
+    --epochs      ${EPOCHS} \
+    --lr          ${LR} \
+    --backbone_lr ${BACKBONE_LR} \
     --exp_name    ${EXP_NAME} \
-    --output_dir  ${PROJECT_DIR}/outputs_classification
+    --output_dir  ${PROJECT_DIR}/outputs_classification \
+    "${EXTRA_ARGS[@]}"
 
 echo ""
 echo "================================================"

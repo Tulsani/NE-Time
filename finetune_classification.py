@@ -1,10 +1,23 @@
 """
-Classification for NE-Time, via MOMENT's own protocol: extract frozen embeddings from
-the pretrained backbone, fit an off-the-shelf SVM on them, report accuracy. No new
-training loop — the backbone is used purely as a frozen feature extractor.
+Classification for NE-Time.
+
+Two protocols:
+  --finetune_backbone off (default): MOMENT's own protocol — extract frozen embeddings
+      from the pretrained backbone, fit an off-the-shelf SVM on them, report accuracy.
+      No new training loop, backbone used purely as a frozen feature extractor.
+  --finetune_backbone on: unfreeze the backbone and train it jointly with a small new
+      classification head via cross-entropy — mirrors the pattern that substantially
+      improved imputation results (linear-probing a forecasting-pretrained backbone left
+      most of the gap unaddressed; full fine-tuning recovered most of it). A fresh
+      backbone copy + head is trained per dataset (see reset_backbone).
 
 Datasets: a handful of well-known univariate UCR datasets (via `aeon`, not all 91 MOMENT
 uses, given time constraints) — small, fast, commonly cited in TSC benchmark papers.
+Includes both domain-mismatched sets (ECG, gesture, spectroscopy — nothing like our
+weather/FX/electricity pretrain corpus) and domain-matched ones (ItalyPowerDemand,
+PowerCons, ElectricDevices — all classify household/device power-consumption profiles,
+the same broad domain as our ECL pretraining data) to test whether pretrain/task domain
+match affects transfer, not just protocol (frozen vs. fine-tuned).
 
 UCR series are usually much shorter than our backbone's fixed 336-step input (e.g.
 Chinatown is 24 steps). Short series are zero-padded to seq_len, with a mask marking the
@@ -15,8 +28,8 @@ weight proportional to how much real (non-padded) data each patch actually cover
 patches that are pure padding don't dilute the pooled embedding.
 
 Usage:
-  python finetune_classification.py --ckpt outputs_foundation/<exp_name>_best.pth \
-      --datasets Chinatown ECG200 GunPoint ItalyPowerDemand Coffee TwoLeadECG
+  python finetune_classification.py --ckpt outputs_foundation/<exp_name>_best.pth
+  python finetune_classification.py --ckpt ... --finetune_backbone
 """
 
 import os
@@ -24,20 +37,28 @@ import json
 import argparse
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 from aeon.datasets import load_classification
 from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 from model_no_attn_upd import HyperTimeV2
 from train import MODEL_CONFIGS
 
 
-DEFAULT_DATASETS = ['Chinatown', 'ECG200', 'GunPoint', 'ItalyPowerDemand', 'Coffee', 'TwoLeadECG']
+DEFAULT_DATASETS = [
+    # domain-mismatched (nothing like weather/FX/electricity)
+    'Chinatown', 'ECG200', 'GunPoint', 'Coffee', 'TwoLeadECG',
+    # domain-matched (household/device power-consumption profiles — same broad domain
+    # as ECL, which is in our pretraining corpus)
+    'ItalyPowerDemand', 'PowerCons', 'ElectricDevices',
+]
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description='NE-Time Classification (frozen embeddings + SVM)')
+    p = argparse.ArgumentParser(description='NE-Time Classification')
     p.add_argument('--ckpt', type=str, required=True,
                     help='Path to a pretrained foundation checkpoint (*_best.pth)')
     p.add_argument('--datasets',   type=str, nargs='+', default=DEFAULT_DATASETS)
@@ -48,13 +69,42 @@ def parse_args():
     p.add_argument('--batch_size', type=int, default=64)
     p.add_argument('--svm_C',      type=float, default=1.0)
     p.add_argument('--svm_kernel', type=str, default='rbf')
+    p.add_argument('--finetune_backbone', action='store_true',
+                    help='Unfreeze the backbone and train it jointly with a new '
+                         'classification head via cross-entropy, instead of the default '
+                         'frozen-embeddings + SVM protocol.')
+    p.add_argument('--epochs',      type=int,   default=15)
+    p.add_argument('--lr',          type=float, default=1e-3)
+    p.add_argument('--backbone_lr', type=float, default=1e-4)
+    p.add_argument('--finetune_batch_size', type=int, default=16,
+                    help='Separate, smaller default batch size for the fine-tune training '
+                         'loop, since several of these datasets have well under 100 train '
+                         'examples.')
     p.add_argument('--exp_name',   type=str, default='classification')
     p.add_argument('--output_dir', type=str, default='./outputs_classification')
     p.add_argument('--seed',       type=int, default=42)
     return p.parse_args()
 
 
+class ClassificationHead(nn.Module):
+    def __init__(self, d_model: int, num_classes: int, dropout: float = 0.1):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, d_model),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, num_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+
 def load_backbone(ckpt_path: str, device: torch.device):
+    """Returns (backbone, original_state_dict, ckpt_args, d_model). The original state
+    dict lets reset_backbone restore pretrained weights before each dataset's fine-tune
+    run, so one dataset's adaptation can't contaminate the next."""
     ckpt = torch.load(ckpt_path, map_location=device)
     ckpt_args = argparse.Namespace(**ckpt['args'])
     model_cfg  = MODEL_CONFIGS[ckpt_args.size]
@@ -70,15 +120,19 @@ def load_backbone(ckpt_path: str, device: torch.device):
     )
     backbone.load_state_dict(ckpt['model_state'])
     backbone.to(device)
-    for param in backbone.parameters():
-        param.requires_grad = False
-    backbone.eval()
 
     print(f"Loaded backbone from {ckpt_path}")
     print(f"  size={ckpt_args.size}  seq_len={ckpt_args.seq_len}  "
           f"patch_size={ckpt_args.patch_size}  stride={ckpt_args.patch_stride}")
-    print(f"  frozen backbone params: {sum(p.numel() for p in backbone.parameters()):,}")
-    return backbone, ckpt_args
+    print(f"  backbone params: {sum(p.numel() for p in backbone.parameters()):,}")
+    return backbone, ckpt['model_state'], ckpt_args, d_model
+
+
+def reset_backbone(backbone: HyperTimeV2, original_state: dict, freeze: bool):
+    backbone.load_state_dict(original_state)
+    for param in backbone.parameters():
+        param.requires_grad = not freeze
+    backbone.eval() if freeze else backbone.train()
 
 
 def pad_and_mask(X: np.ndarray, seq_len: int):
@@ -128,6 +182,110 @@ def extract_embeddings(backbone: HyperTimeV2, X: np.ndarray, seq_len: int, patch
     return np.concatenate(embeddings, axis=0)
 
 
+def compute_patch_weights(mask: np.ndarray, num_patches: int, patch_size: int, stride: int) -> np.ndarray:
+    """mask: [N, seq_len, 1] -> [N, num_patches] fraction-of-real-data-per-patch, shared by
+    both the frozen-embedding path and the fine-tuning path."""
+    return np.stack([patch_validity(mask[i, :, 0], num_patches, patch_size, stride)
+                      for i in range(len(mask))])
+
+
+def pooled_logits(backbone: HyperTimeV2, head: ClassificationHead, xb: torch.Tensor,
+                   mb: torch.Tensor, wb: torch.Tensor) -> torch.Tensor:
+    """One shared forward pass: masked-encode -> validity-weighted pool -> classify."""
+    euclidean, _, _, _ = backbone.encode_patches(xb, mask=mb)   # [b, num_patches, d_model]
+    wb_norm = wb / wb.sum(dim=1, keepdim=True).clamp(min=1e-6)
+    pooled = (euclidean * wb_norm.unsqueeze(-1)).sum(dim=1)     # [b, d_model]
+    return head(pooled)
+
+
+def train_finetuned_classifier(backbone: HyperTimeV2, original_state: dict, d_model: int,
+                                X_train: np.ndarray, y_train: np.ndarray,
+                                X_test: np.ndarray, y_test: np.ndarray,
+                                seq_len: int, patch_size: int, stride: int,
+                                device: torch.device, args) -> dict:
+    """Resets the backbone to its pretrained weights, unfreezes it, and trains it jointly
+    with a fresh classification head via cross-entropy. Returns the same result-dict shape
+    as the frozen+SVM path so results are directly comparable."""
+    le = LabelEncoder()
+    y_train_enc = le.fit_transform(y_train).astype(np.int64)
+    y_test_enc = le.transform(y_test).astype(np.int64)
+    num_classes = len(le.classes_)
+
+    reset_backbone(backbone, original_state, freeze=False)
+    head = ClassificationHead(d_model, num_classes).to(device)
+    optimizer = torch.optim.AdamW([
+        {'params': head.parameters(), 'lr': args.lr},
+        {'params': backbone.parameters(), 'lr': args.backbone_lr},
+    ])
+
+    x_train_p, mask_train = pad_and_mask(X_train, seq_len)
+    x_test_p, mask_test = pad_and_mask(X_test, seq_len)
+    num_patches = backbone.patch_embed.num_patches
+    w_train = compute_patch_weights(mask_train, num_patches, patch_size, stride)
+    w_test = compute_patch_weights(mask_test, num_patches, patch_size, stride)
+
+    rng = np.random.default_rng(args.seed)
+    n = len(x_train_p)
+    bs = args.finetune_batch_size
+    for epoch in range(1, args.epochs + 1):
+        backbone.train()
+        head.train()
+        idx = rng.permutation(n)
+        total_loss, correct, seen = 0.0, 0, 0
+        for i in range(0, n, bs):
+            b = idx[i:i + bs]
+            xb = torch.from_numpy(x_train_p[b]).to(device)
+            mb = torch.from_numpy(mask_train[b]).to(device)
+            wb = torch.from_numpy(w_train[b]).to(device)
+            yb = torch.from_numpy(y_train_enc[b]).to(device)
+
+            logits = pooled_logits(backbone, head, xb, mb, wb)
+            loss = F.cross_entropy(logits, yb)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item() * len(b)
+            correct += (logits.argmax(-1) == yb).sum().item()
+            seen += len(b)
+
+        if epoch == 1 or epoch == args.epochs:
+            print(f"    epoch {epoch}/{args.epochs}: "
+                  f"train_loss={total_loss/seen:.4f}  train_acc={correct/seen:.4f}")
+
+    backbone.eval()
+    head.eval()
+    with torch.no_grad():
+        correct, seen = 0, 0
+        for i in range(0, len(x_test_p), bs):
+            xb = torch.from_numpy(x_test_p[i:i + bs]).to(device)
+            mb = torch.from_numpy(mask_test[i:i + bs]).to(device)
+            wb = torch.from_numpy(w_test[i:i + bs]).to(device)
+            yb = torch.from_numpy(y_test_enc[i:i + bs]).to(device)
+            logits = pooled_logits(backbone, head, xb, mb, wb)
+            correct += (logits.argmax(-1) == yb).sum().item()
+            seen += len(yb)
+    test_acc = correct / seen
+
+    # train accuracy at final weights, for the same reporting shape as the frozen path
+    backbone.eval()
+    with torch.no_grad():
+        correct, seen = 0, 0
+        for i in range(0, len(x_train_p), bs):
+            xb = torch.from_numpy(x_train_p[i:i + bs]).to(device)
+            mb = torch.from_numpy(mask_train[i:i + bs]).to(device)
+            wb = torch.from_numpy(w_train[i:i + bs]).to(device)
+            yb = torch.from_numpy(y_train_enc[i:i + bs]).to(device)
+            logits = pooled_logits(backbone, head, xb, mb, wb)
+            correct += (logits.argmax(-1) == yb).sum().item()
+            seen += len(yb)
+    train_acc = correct / seen
+
+    return {'train_accuracy': train_acc, 'test_accuracy': test_acc,
+            'n_train': len(X_train), 'n_test': len(X_test), 'n_classes': num_classes}
+
+
 def main():
     args = parse_args()
     torch.manual_seed(args.seed)
@@ -140,8 +298,9 @@ def main():
         'cpu')
     print(f"Device: {device}")
 
-    backbone, ckpt_args = load_backbone(args.ckpt, device)
+    backbone, original_state, ckpt_args, d_model = load_backbone(args.ckpt, device)
     seq_len = ckpt_args.seq_len
+    print(f"Protocol: {'fine-tuned (backbone + head, cross-entropy)' if args.finetune_backbone else 'frozen embeddings + SVM (MOMENT protocol)'}")
 
     results = {}
     for name in args.datasets:
@@ -157,25 +316,31 @@ def main():
         print(f"\n[{name}] train={X_train.shape} test={X_test.shape} "
               f"classes={sorted(set(y_train.tolist()))}")
 
-        train_emb = extract_embeddings(backbone, X_train, seq_len, ckpt_args.patch_size,
-                                        ckpt_args.patch_stride, device, args.batch_size)
-        test_emb = extract_embeddings(backbone, X_test, seq_len, ckpt_args.patch_size,
-                                       ckpt_args.patch_stride, device, args.batch_size)
+        if args.finetune_backbone:
+            result = train_finetuned_classifier(
+                backbone, original_state, d_model, X_train, y_train, X_test, y_test,
+                seq_len, ckpt_args.patch_size, ckpt_args.patch_stride, device, args)
+        else:
+            reset_backbone(backbone, original_state, freeze=True)
+            train_emb = extract_embeddings(backbone, X_train, seq_len, ckpt_args.patch_size,
+                                            ckpt_args.patch_stride, device, args.batch_size)
+            test_emb = extract_embeddings(backbone, X_test, seq_len, ckpt_args.patch_size,
+                                           ckpt_args.patch_stride, device, args.batch_size)
 
-        # Standardize embeddings before the SVM — standard practice, SVMs are scale-sensitive.
-        scaler = StandardScaler()
-        train_emb = scaler.fit_transform(train_emb)
-        test_emb = scaler.transform(test_emb)
+            # Standardize embeddings before the SVM — standard practice, SVMs are scale-sensitive.
+            scaler = StandardScaler()
+            train_emb = scaler.fit_transform(train_emb)
+            test_emb = scaler.transform(test_emb)
 
-        clf = SVC(C=args.svm_C, kernel=args.svm_kernel, random_state=args.seed)
-        clf.fit(train_emb, y_train)
-        test_acc = clf.score(test_emb, y_test)
-        train_acc = clf.score(train_emb, y_train)
+            clf = SVC(C=args.svm_C, kernel=args.svm_kernel, random_state=args.seed)
+            clf.fit(train_emb, y_train)
+            result = {'train_accuracy': clf.score(train_emb, y_train),
+                      'test_accuracy': clf.score(test_emb, y_test),
+                      'n_train': len(X_train), 'n_test': len(X_test),
+                      'n_classes': len(set(y_train.tolist()))}
 
-        results[name] = {'train_accuracy': train_acc, 'test_accuracy': test_acc,
-                          'n_train': len(X_train), 'n_test': len(X_test),
-                          'n_classes': len(set(y_train.tolist()))}
-        print(f"  train_acc={train_acc:.4f}  test_acc={test_acc:.4f}")
+        results[name] = result
+        print(f"  train_acc={result['train_accuracy']:.4f}  test_acc={result['test_accuracy']:.4f}")
 
     out_path = os.path.join(args.output_dir, f"{args.exp_name}_classification_results.json")
     with open(out_path, 'w') as f:
