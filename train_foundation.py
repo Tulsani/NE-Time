@@ -140,6 +140,11 @@ def parse_args():
     p.add_argument('--proj_hidden',     type=int,   default=64,
                     help='TemporalProjector bottleneck width (was hardcoded 64). See '
                          'train.py --proj_hidden help for the shortcut-hypothesis rationale.')
+    p.add_argument('--geometry', type=str, default='hyperbolic',
+                    choices=['hyperbolic', 'euclidean'],
+                    help='euclidean = ablation control, same architecture/param count with '
+                         'the Poincare-ball mapping replaced by identity. See train.py '
+                         '--geometry help for full rationale.')
 
     p.add_argument('--epochs',        type=int,   default=50)
     p.add_argument('--warmup_epochs', type=int,   default=3)
@@ -200,7 +205,8 @@ def main():
     model.to(device)
 
     params = model.param_count()
-    print(f"\nTotal parameters: {params['TOTAL']:,}")
+    print(f"\nGeometry: {args.geometry}")
+    print(f"Total parameters: {params['TOTAL']:,}")
 
     steps_per_epoch = max(len(pretrain[n]['train']) for n in args.pretrain_datasets)
     optimizer, scheduler = build_optimizer_and_scheduler(model, args, steps_per_epoch)

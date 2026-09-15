@@ -21,6 +21,13 @@
 #   PRETRAIN_DATASETS="ETTh1 ETTh2 ETTm1 ETTm2" ZERO_SHOT_DATASETS="Weather Exchange ECL Traffic" \
 #       sbatch scripts/train_foundation.sh
 #
+# Euclidean-ablation control (identical architecture/corpus/hyperparams, Poincare-ball
+# mapping replaced by identity — isolates the effect of hyperbolic geometry itself):
+#   GEOMETRY=euclidean EXP_NAME=nano_wecm1_sw_lr3e4_euclidean \
+#       MODEL_SIZE=nano SIZE_WEIGHTED_SAMPLING=true LR=3e-4 \
+#       PRETRAIN_DATASETS="Weather Exchange ECL ETTm1" ZERO_SHOT_DATASETS="ETTh1 ETTh2 ETTm2 Traffic" \
+#       sbatch scripts/train_foundation.sh
+#
 # See train_foundation.py for full protocol details (joint CI/univariate
 # pretraining on one shared HyperTimeV2, then zero-shot eval with no
 # fine-tuning on held-out datasets).
@@ -44,6 +51,7 @@ BATCH_SIZE=${BATCH_SIZE:-32}
 LR=${LR:-1e-3}
 PATIENCE=${PATIENCE:-15}
 SIZE_WEIGHTED_SAMPLING=${SIZE_WEIGHTED_SAMPLING:-false}
+GEOMETRY=${GEOMETRY:-hyperbolic}
 
 # Overfitting-fix knobs (see train.py / model_no_attn_upd.py for details)
 GEO_DROPOUT=${GEO_DROPOUT:-0.2}
@@ -79,6 +87,7 @@ echo "Epochs:              ${EPOCHS}"
 echo "LR:                  ${LR}"
 echo "Patience:            ${PATIENCE}"
 echo "Size-weighted sampl: ${SIZE_WEIGHTED_SAMPLING}"
+echo "Geometry:            ${GEOMETRY}"
 echo "Exp name:            ${EXP_NAME}"
 echo "--- overfitting fixes ---"
 echo "geo_dropout:         ${GEO_DROPOUT}"
@@ -143,6 +152,7 @@ python train_foundation.py \
     --hyp_hidden_scale   ${HYP_HIDDEN_SCALE} \
     --curvature_wd       ${CURVATURE_WD} \
     --proj_hidden        ${PROJ_HIDDEN} \
+    --geometry           ${GEOMETRY} \
     --exp_name           ${EXP_NAME} \
     --output_dir         ${PROJECT_DIR}/outputs_foundation \
     "${EXTRA_ARGS[@]}"

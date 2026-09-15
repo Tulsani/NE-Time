@@ -174,8 +174,14 @@ class HyperTimeV2(nn.Module):
         c_global_init:  float = 0.5,
         c_meso_init:    float = 1.0,
         c_local_init:   float = 2.0,
+        geometry:       str   = 'hyperbolic',  # 'hyperbolic' | 'euclidean' (ablation control)
     ):
         super().__init__()
+
+        assert geometry in ('hyperbolic', 'euclidean'), \
+            f"geometry must be 'hyperbolic' or 'euclidean', got {geometry!r}"
+        self.geometry = geometry
+        use_hyp = (geometry == 'hyperbolic')
 
         self.input_dim    = input_dim
         self.seq_len      = seq_len
@@ -206,25 +212,29 @@ class HyperTimeV2(nn.Module):
         self.c_local  = CurvatureParam(c_local_init)
         self.c_fusion = CurvatureParam(1.0)
 
-        # 5. Hyperbolic encoders — now with geo_dropout and explicit hidden_dim
+        # 5. Encoders — hyperbolic (default) or Euclidean-ablation control.
+        # Identical MLP shapes either way (same param count); geometry=='euclidean'
+        # simply skips expmap0 at the end of forward(), isolating the effect of the
+        # Poincaré-ball mapping itself from the rest of the architecture (decomposer,
+        # multi-scale fusion, horizon conditioning, etc., all unchanged).
         self.enc_global = HyperbolicEncoder(
             d_model, hyp_hidden_dim, hyp_dim, self.c_global,
-            dropout=dropout, geo_dropout=geo_dropout)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
         self.enc_meso   = HyperbolicEncoder(
             d_model, hyp_hidden_dim, hyp_dim, self.c_meso,
-            dropout=dropout, geo_dropout=geo_dropout)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
         self.enc_local  = HyperbolicEncoder(
             d_model, hyp_hidden_dim, hyp_dim, self.c_local,
-            dropout=dropout, geo_dropout=geo_dropout)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
 
         # 6. Horizon encoder
         self.horizon_enc = HorizonEncoder(
             cond_dim=cond_dim, hidden_dim=d_model, max_horizon=max_pred_len)
 
-        # 7. Hyperbolic decoder — with geo_dropout
+        # 7. Decoder — hyperbolic or Euclidean-ablation control (see note above)
         self.decoder = HyperbolicDecoder(
             hyp_dim, hyp_hidden_dim, d_model, self.c_fusion,
-            dropout=dropout, geo_dropout=geo_dropout)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
 
         # 8. Temporal projector
         self.temporal_proj = TemporalProjector(
@@ -303,7 +313,8 @@ class HyperTimeV2(nn.Module):
         scale_weights_exp   = scale_weights.unsqueeze(1).expand(-1, patches.shape[1], -1)
 
         h_fused   = tangent_space_fusion(
-            [h_global, h_meso, h_local], scale_weights_exp, self.c_fusion.c)
+            [h_global, h_meso, h_local], scale_weights_exp, self.c_fusion.c,
+            hyperbolic=(self.geometry == 'hyperbolic'))
 
         h_fused   = self.fusion_drop(h_fused)
         euclidean = self.decoder(h_fused)

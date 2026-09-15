@@ -62,12 +62,26 @@ def tangent_space_fusion(
     h_list: list,
     weights: torch.Tensor,
     c: torch.Tensor,
-    eps: float = 1e-5
+    eps: float = 1e-5,
+    hyperbolic: bool = True,
 ) -> torch.Tensor:
-    tangents = torch.stack([logmap0(h, c, eps) for h in h_list], dim=-2)
+    """Fuse multi-scale representations by a weighted sum in tangent space.
+
+    hyperbolic=False (Euclidean-ablation control): h_list entries are already
+    Euclidean (see HyperbolicEncoder(hyperbolic=False)), so logmap0/expmap0 are
+    skipped and this degenerates to a plain weighted sum — same shapes, same
+    weight-mixing logic, the only difference being the two geometric ops that
+    define "hyperbolic" in the first place.
+    """
+    if hyperbolic:
+        tangents = torch.stack([logmap0(h, c, eps) for h in h_list], dim=-2)
+    else:
+        tangents = torch.stack(h_list, dim=-2)
     w = weights.unsqueeze(-1)
     t_fused = (w * tangents).sum(dim=-2)
-    return expmap0(t_fused, c, eps)
+    if hyperbolic:
+        return expmap0(t_fused, c, eps)
+    return t_fused
 
 
 # ─────────────────────────────────────────────────────────
@@ -135,9 +149,10 @@ class HyperbolicEncoder(nn.Module):
 
     def __init__(self, in_dim: int, hidden_dim: int, hyp_dim: int,
                  c_param: CurvatureParam, dropout: float = 0.1,
-                 geo_dropout: float = 0.2):
+                 geo_dropout: float = 0.2, hyperbolic: bool = True):
         super().__init__()
         self.c_param = c_param
+        self.hyperbolic = hyperbolic
 
         self.net = nn.Sequential(
             nn.Linear(in_dim, hidden_dim),
@@ -159,9 +174,13 @@ class HyperbolicEncoder(nn.Module):
         self.geo_drop = nn.Dropout(geo_dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """x: [..., in_dim]  →  [..., hyp_dim] on Poincaré ball"""
+        """x: [..., in_dim]  →  [..., hyp_dim] on Poincaré ball
+        (or plain Euclidean [..., hyp_dim] if hyperbolic=False — the
+        Euclidean-ablation control; same MLP, same param count, expmap0 skipped)."""
         t = self.net(x)
         t = self.geo_drop(t)          # regularise in tangent space before mapping
+        if not self.hyperbolic:
+            return t
         return expmap0(t, self.c_param.c)
 
 
@@ -176,9 +195,10 @@ class HyperbolicDecoder(nn.Module):
 
     def __init__(self, hyp_dim: int, hidden_dim: int, out_dim: int,
                  c_param: CurvatureParam, dropout: float = 0.1,
-                 geo_dropout: float = 0.2):
+                 geo_dropout: float = 0.2, hyperbolic: bool = True):
         super().__init__()
         self.c_param = c_param
+        self.hyperbolic = hyperbolic
 
         # geo_drop sits between logmap0 and the MLP
         self.geo_drop = nn.Dropout(geo_dropout)
@@ -192,8 +212,9 @@ class HyperbolicDecoder(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """x: [..., hyp_dim] on ball  →  [..., out_dim] Euclidean"""
-        t = logmap0(x, self.c_param.c)
+        """x: [..., hyp_dim] on ball  →  [..., out_dim] Euclidean
+        (hyperbolic=False: x is already Euclidean, logmap0 skipped)."""
+        t = logmap0(x, self.c_param.c) if self.hyperbolic else x
         t = self.geo_drop(t)          # regularise tangent vector before MLP
         return self.net(t)
 

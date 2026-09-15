@@ -465,6 +465,14 @@ def parse_args():
                         'TemporalProjector sits in the same kind of position (plain '
                         'Euclidean compress-then-expand, right before the output), so this '
                         'flag lets that be tested as a capacity lever too.')
+    p.add_argument('--geometry', type=str, default='hyperbolic',
+                   choices=['hyperbolic', 'euclidean'],
+                   help="'euclidean' is the ablation control: identical architecture "
+                        '(decomposer, multi-scale fusion, horizon conditioning, encoder/'
+                        'decoder MLP shapes — same param count) but the Poincare-ball '
+                        'expmap0/logmap0 mapping and tangent-space fusion are replaced by '
+                        'identity / a plain weighted sum, isolating the effect of the '
+                        'hyperbolic geometry itself from the rest of the design.')
 
     # Training
     p.add_argument('--epochs',        type=int,   default=50)
@@ -509,6 +517,7 @@ def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
         geo_dropout   = args.geo_dropout,
         hyp_hidden_dim = hyp_hidden,
         proj_hidden   = getattr(args, 'proj_hidden', 64),
+        geometry      = getattr(args, 'geometry', 'hyperbolic'),
         **model_cfg,
     )
 
