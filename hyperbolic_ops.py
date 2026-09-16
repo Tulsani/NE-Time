@@ -149,7 +149,8 @@ class HyperbolicEncoder(nn.Module):
 
     def __init__(self, in_dim: int, hidden_dim: int, hyp_dim: int,
                  c_param: CurvatureParam, dropout: float = 0.1,
-                 geo_dropout: float = 0.2, hyperbolic: bool = True):
+                 geo_dropout: float = 0.2, hyperbolic: bool = True,
+                 out_init_std: float = 0.01):
         super().__init__()
         self.c_param = c_param
         self.hyperbolic = hyperbolic
@@ -166,9 +167,21 @@ class HyperbolicEncoder(nn.Module):
             nn.Linear(hidden_dim, hyp_dim),
         )
 
-        # Small init → points start near origin
-        nn.init.normal_(self.net[-1].weight, std=0.01)
+        # out_init_std controls how far from the ball's origin points start.
+        # Default 0.01 (small init) was chosen for training stability. A larger value
+        # is the "stronger geometry bias" ablation lever: it starts training with
+        # tangent vectors already large enough that expmap0's nonlinearity is
+        # non-negligible from step 1, rather than letting the model default toward
+        # the near-linear regime measured in the trained default-init backbone
+        # (see check_hyperbolic_utilization.py — the global branch in particular
+        # stayed close to linear under the default init).
+        nn.init.normal_(self.net[-1].weight, std=out_init_std)
         nn.init.zeros_(self.net[-1].bias)
+        # Flag so HyperTimeV2._init_weights() (which re-inits every nn.Linear after all
+        # submodules are constructed) does not clobber this deliberate init — previously
+        # it did, silently, meaning this layer's actual init was always ~trunc_normal(0.02)
+        # regardless of what was requested here (found while wiring up out_init_std).
+        self.net[-1]._custom_init = True
 
         # Dropout applied to tangent vector before expmap0
         self.geo_drop = nn.Dropout(geo_dropout)

@@ -145,6 +145,12 @@ def parse_args():
                     help='euclidean = ablation control, same architecture/param count with '
                          'the Poincare-ball mapping replaced by identity. See train.py '
                          '--geometry help for full rationale.')
+    p.add_argument('--c_global_init', type=float, default=0.5)
+    p.add_argument('--c_meso_init',   type=float, default=1.0)
+    p.add_argument('--c_local_init',  type=float, default=2.0)
+    p.add_argument('--enc_out_init_std', type=float, default=0.01,
+                    help='"Stronger geometry bias" lever — see train.py --enc_out_init_std '
+                         'help for full rationale.')
 
     p.add_argument('--epochs',        type=int,   default=50)
     p.add_argument('--warmup_epochs', type=int,   default=3)

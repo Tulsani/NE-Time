@@ -52,6 +52,10 @@ LR=${LR:-1e-3}
 PATIENCE=${PATIENCE:-15}
 SIZE_WEIGHTED_SAMPLING=${SIZE_WEIGHTED_SAMPLING:-false}
 GEOMETRY=${GEOMETRY:-hyperbolic}
+C_GLOBAL_INIT=${C_GLOBAL_INIT:-0.5}
+C_MESO_INIT=${C_MESO_INIT:-1.0}
+C_LOCAL_INIT=${C_LOCAL_INIT:-2.0}
+ENC_OUT_INIT_STD=${ENC_OUT_INIT_STD:-0.01}
 
 # Overfitting-fix knobs (see train.py / model_no_attn_upd.py for details)
 GEO_DROPOUT=${GEO_DROPOUT:-0.2}
@@ -88,6 +92,8 @@ echo "LR:                  ${LR}"
 echo "Patience:            ${PATIENCE}"
 echo "Size-weighted sampl: ${SIZE_WEIGHTED_SAMPLING}"
 echo "Geometry:            ${GEOMETRY}"
+echo "Curvature inits (g/m/l): ${C_GLOBAL_INIT} / ${C_MESO_INIT} / ${C_LOCAL_INIT}"
+echo "Enc out_init_std:    ${ENC_OUT_INIT_STD}"
 echo "Exp name:            ${EXP_NAME}"
 echo "--- overfitting fixes ---"
 echo "geo_dropout:         ${GEO_DROPOUT}"
@@ -153,6 +159,10 @@ python train_foundation.py \
     --curvature_wd       ${CURVATURE_WD} \
     --proj_hidden        ${PROJ_HIDDEN} \
     --geometry           ${GEOMETRY} \
+    --c_global_init      ${C_GLOBAL_INIT} \
+    --c_meso_init        ${C_MESO_INIT} \
+    --c_local_init       ${C_LOCAL_INIT} \
+    --enc_out_init_std   ${ENC_OUT_INIT_STD} \
     --exp_name           ${EXP_NAME} \
     --output_dir         ${PROJECT_DIR}/outputs_foundation \
     "${EXTRA_ARGS[@]}"

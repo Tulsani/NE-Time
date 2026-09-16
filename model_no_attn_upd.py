@@ -175,6 +175,7 @@ class HyperTimeV2(nn.Module):
         c_meso_init:    float = 1.0,
         c_local_init:   float = 2.0,
         geometry:       str   = 'hyperbolic',  # 'hyperbolic' | 'euclidean' (ablation control)
+        enc_out_init_std: float = 0.01,  # NEW: "stronger geometry bias" ablation lever
     ):
         super().__init__()
 
@@ -219,13 +220,16 @@ class HyperTimeV2(nn.Module):
         # multi-scale fusion, horizon conditioning, etc., all unchanged).
         self.enc_global = HyperbolicEncoder(
             d_model, hyp_hidden_dim, hyp_dim, self.c_global,
-            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp,
+            out_init_std=enc_out_init_std)
         self.enc_meso   = HyperbolicEncoder(
             d_model, hyp_hidden_dim, hyp_dim, self.c_meso,
-            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp,
+            out_init_std=enc_out_init_std)
         self.enc_local  = HyperbolicEncoder(
             d_model, hyp_hidden_dim, hyp_dim, self.c_local,
-            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp)
+            dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp,
+            out_init_std=enc_out_init_std)
 
         # 6. Horizon encoder
         self.horizon_enc = HorizonEncoder(
@@ -263,6 +267,11 @@ class HyperTimeV2(nn.Module):
     def _init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
+                # HyperbolicEncoder's final layer sets its own deliberate init (controls how
+                # far from the Poincare-ball origin points start — see out_init_std) and
+                # flags itself so it isn't clobbered here.
+                if getattr(m, '_custom_init', False):
+                    continue
                 nn.init.trunc_normal_(m.weight, std=0.02)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)

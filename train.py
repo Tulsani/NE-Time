@@ -473,6 +473,20 @@ def parse_args():
                         'expmap0/logmap0 mapping and tangent-space fusion are replaced by '
                         'identity / a plain weighted sum, isolating the effect of the '
                         'hyperbolic geometry itself from the rest of the design.')
+    p.add_argument('--c_global_init', type=float, default=0.5,
+                   help='Initial curvature for the global-scale branch.')
+    p.add_argument('--c_meso_init', type=float, default=1.0,
+                   help='Initial curvature for the meso-scale branch.')
+    p.add_argument('--c_local_init', type=float, default=2.0,
+                   help='Initial curvature for the local-scale branch.')
+    p.add_argument('--enc_out_init_std', type=float, default=0.01,
+                   help='Init std of HyperbolicEncoder\'s final linear layer (controls how '
+                        'far from the Poincare-ball origin points start). Default 0.01 keeps '
+                        'points near-origin, where expmap0 is close to identity (found to be '
+                        "the default-trained model's global-branch behavior). Raising this is "
+                        'a "stronger geometry bias" lever — starts training already in the '
+                        "ball's genuinely nonlinear regime, testing whether forcing more "
+                        'curvature utilization improves zero-shot generalization further.')
 
     # Training
     p.add_argument('--epochs',        type=int,   default=50)
@@ -518,6 +532,10 @@ def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
         hyp_hidden_dim = hyp_hidden,
         proj_hidden   = getattr(args, 'proj_hidden', 64),
         geometry      = getattr(args, 'geometry', 'hyperbolic'),
+        c_global_init = getattr(args, 'c_global_init', 0.5),
+        c_meso_init   = getattr(args, 'c_meso_init', 1.0),
+        c_local_init  = getattr(args, 'c_local_init', 2.0),
+        enc_out_init_std = getattr(args, 'enc_out_init_std', 0.01),
         **model_cfg,
     )
 
