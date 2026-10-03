@@ -473,6 +473,13 @@ def parse_args():
                         'expmap0/logmap0 mapping and tangent-space fusion are replaced by '
                         'identity / a plain weighted sum, isolating the effect of the '
                         'hyperbolic geometry itself from the rest of the design.')
+    p.add_argument('--decomposer', type=str, default='fixed_ma',
+                   choices=['fixed_ma', 'none'],
+                   help="'none' is the decomposer-ablation control: all three scale "
+                        'branches receive the identical undecomposed patches instead of '
+                        "FixedMADecomposer's global/meso/local split, isolating whether the "
+                        'decomposition itself (not just the three-branch/fusion structure) '
+                        'is doing the work. No parameter-count effect either way.')
     p.add_argument('--c_global_init', type=float, default=0.5,
                    help='Initial curvature for the global-scale branch.')
     p.add_argument('--c_meso_init', type=float, default=1.0,
@@ -536,6 +543,7 @@ def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
         c_meso_init   = getattr(args, 'c_meso_init', 1.0),
         c_local_init  = getattr(args, 'c_local_init', 2.0),
         enc_out_init_std = getattr(args, 'enc_out_init_std', 0.01),
+        use_decomposer = (getattr(args, 'decomposer', 'fixed_ma') == 'fixed_ma'),
         **model_cfg,
     )
 

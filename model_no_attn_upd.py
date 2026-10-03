@@ -176,6 +176,7 @@ class HyperTimeV2(nn.Module):
         c_local_init:   float = 2.0,
         geometry:       str   = 'hyperbolic',  # 'hyperbolic' | 'euclidean' (ablation control)
         enc_out_init_std: float = 0.01,  # NEW: "stronger geometry bias" ablation lever
+        use_decomposer: bool  = True,   # NEW: decomposer ablation control (see encode_patches)
     ):
         super().__init__()
 
@@ -183,6 +184,7 @@ class HyperTimeV2(nn.Module):
             f"geometry must be 'hyperbolic' or 'euclidean', got {geometry!r}"
         self.geometry = geometry
         use_hyp = (geometry == 'hyperbolic')
+        self.use_decomposer = use_decomposer
 
         self.input_dim    = input_dim
         self.seq_len      = seq_len
@@ -312,7 +314,16 @@ class HyperTimeV2(nn.Module):
         x = self.revin.normalise(x, mask=mask)
         patches = self.patch_embed(x)
 
-        g_patches, m_patches, l_patches = self.decomposer(patches)
+        if self.use_decomposer:
+            g_patches, m_patches, l_patches = self.decomposer(patches)
+        else:
+            # Decomposer-ablation control: feed the identical undecomposed patches to all
+            # three branches instead of FixedMADecomposer's global/meso/local split. The
+            # three encoders remain separately-parameterized and fusion is unchanged, so this
+            # isolates whether the decomposer's actual frequency/timescale separation matters,
+            # vs. just having three encoders combined by horizon-conditioned fusion. Zero
+            # parameter-count effect either way (FixedMADecomposer itself has none).
+            g_patches, m_patches, l_patches = patches, patches, patches
 
         h_global = self.enc_global(g_patches)
         h_meso   = self.enc_meso(m_patches)
@@ -322,7 +333,9 @@ class HyperTimeV2(nn.Module):
         scale_weights_exp   = scale_weights.unsqueeze(1).expand(-1, patches.shape[1], -1)
 
         h_fused   = tangent_space_fusion(
-            [h_global, h_meso, h_local], scale_weights_exp, self.c_fusion.c,
+            [h_global, h_meso, h_local],
+            [self.c_global.c, self.c_meso.c, self.c_local.c],
+            scale_weights_exp, self.c_fusion.c,
             hyperbolic=(self.geometry == 'hyperbolic'))
 
         h_fused   = self.fusion_drop(h_fused)
@@ -339,11 +352,23 @@ class HyperTimeV2(nn.Module):
         x: torch.Tensor,
         pred_len: Optional[int] = None,
         return_intermediates: bool = False,
+        cond_override: Optional[int] = None,
     ) -> Tuple[torch.Tensor, Dict]:
+        """cond_override (default None): decouples what horizon value the horizon encoder is
+        TOLD from pred_len, the actual truncation length used below and the length `y` is
+        compared against. None (default) reproduces the original behaviour exactly (the model
+        is told the true pred_len it's being asked to produce). Non-None lets an ablation test
+        whether forecast quality at untrained horizons comes from genuine horizon conditioning
+        or just from TemporalProjector's shared fixed-width output being trained at the
+        boundary horizons and then truncated — e.g. cond_override=336 ("fixed": always told
+        336 regardless of what's actually requested) or a value resampled per call
+        ("shuffled"). See test_horizon_conditioning_ablation.py.
+        """
         if pred_len is None:
             pred_len = self.max_pred_len
+        cond_len = pred_len if cond_override is None else cond_override
 
-        euclidean, cond, scale_weights, intermediates = self.encode_patches(x, cond_len=pred_len)
+        euclidean, cond, scale_weights, intermediates = self.encode_patches(x, cond_len=cond_len)
 
         temporal  = self.temporal_proj(euclidean, cond, pred_len)
         out       = self.out_proj(temporal)

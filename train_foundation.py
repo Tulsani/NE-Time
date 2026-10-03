@@ -145,6 +145,9 @@ def parse_args():
                     help='euclidean = ablation control, same architecture/param count with '
                          'the Poincare-ball mapping replaced by identity. See train.py '
                          '--geometry help for full rationale.')
+    p.add_argument('--decomposer', type=str, default='fixed_ma',
+                    choices=['fixed_ma', 'none'],
+                    help='none = decomposer-ablation control. See train.py --decomposer help.')
     p.add_argument('--c_global_init', type=float, default=0.5)
     p.add_argument('--c_meso_init',   type=float, default=1.0)
     p.add_argument('--c_local_init',  type=float, default=2.0)

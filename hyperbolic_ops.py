@@ -60,12 +60,28 @@ def hyp_distance(x: torch.Tensor, y: torch.Tensor, c: torch.Tensor, eps: float =
 
 def tangent_space_fusion(
     h_list: list,
+    c_list: list,
     weights: torch.Tensor,
-    c: torch.Tensor,
+    c_fusion: torch.Tensor,
     eps: float = 1e-5,
     hyperbolic: bool = True,
 ) -> torch.Tensor:
     """Fuse multi-scale representations by a weighted sum in tangent space.
+
+    Each entry of h_list lives on its OWN ball (h_list[i] was produced by
+    expmap0(., c_list[i])), not on the fusion ball. A prior version of this
+    function logmap0'd every entry under a single shared curvature (the fusion
+    curvature) regardless of which ball it actually came from — mathematically
+    inconsistent (a point valid on the c_global ball need not lie in the domain of
+    the c_fusion logarithm) and, checked directly against a trained checkpoint,
+    not just a theoretical issue: measured h_global norms exceeded the fusion
+    ball's radius, silently triggering logmap0's clamp. Fixed by giving each
+    h_list[i] its own logmap0 under c_list[i] — valid, since every point is then
+    mapped into the tangent space AT THE ORIGIN of its own ball, and the tangent
+    space at the origin is canonically R^n regardless of curvature, so these three
+    tangent vectors can be weighted-summed directly in that shared Euclidean space
+    before a single expmap0 under c_fusion places the fused result back on the
+    fusion ball.
 
     hyperbolic=False (Euclidean-ablation control): h_list entries are already
     Euclidean (see HyperbolicEncoder(hyperbolic=False)), so logmap0/expmap0 are
@@ -74,13 +90,14 @@ def tangent_space_fusion(
     define "hyperbolic" in the first place.
     """
     if hyperbolic:
-        tangents = torch.stack([logmap0(h, c, eps) for h in h_list], dim=-2)
+        tangents = torch.stack(
+            [logmap0(h, c, eps) for h, c in zip(h_list, c_list)], dim=-2)
     else:
         tangents = torch.stack(h_list, dim=-2)
     w = weights.unsqueeze(-1)
     t_fused = (w * tangents).sum(dim=-2)
     if hyperbolic:
-        return expmap0(t_fused, c, eps)
+        return expmap0(t_fused, c_fusion, eps)
     return t_fused
 
 
@@ -260,16 +277,39 @@ if __name__ == "__main__":
     assert err < 1e-5, f"round-trip error={err}"
     print(f"[OK] expmap0/logmap0 round-trip  err={err:.2e}")
 
-    # 3. tangent_space_fusion
+    # 3. tangent_space_fusion — now with per-scale curvatures (distinct c's, the
+    #    cross-curvature fix) rather than one shared curvature for every h
     B, T, D = 4, 32, 16
-    h1 = expmap0(torch.randn(B, T, D) * 0.1, c_val)
-    h2 = expmap0(torch.randn(B, T, D) * 0.1, c_val)
-    h3 = expmap0(torch.randn(B, T, D) * 0.1, c_val)
+    c1, c2, c3 = torch.tensor(0.5), torch.tensor(1.0), torch.tensor(2.0)
+    c_fuse = torch.tensor(0.9)
+    h1 = expmap0(torch.randn(B, T, D) * 0.1, c1)
+    h2 = expmap0(torch.randn(B, T, D) * 0.1, c2)
+    h3 = expmap0(torch.randn(B, T, D) * 0.1, c3)
     w_exp = torch.softmax(torch.randn(B, 3), dim=-1).unsqueeze(1).expand(B, T, 3)
-    fused = tangent_space_fusion([h1, h2, h3], w_exp, c_val)
+    fused = tangent_space_fusion([h1, h2, h3], [c1, c2, c3], w_exp, c_fuse)
     assert fused.shape == (B, T, D)
-    assert fused.norm(dim=-1).max().item() < 1.0
-    print(f"[OK] tangent_space_fusion  shape={fused.shape}")
+    assert fused.norm(dim=-1).max().item() < 1.0 / c_fuse.sqrt().item()
+    print(f"[OK] tangent_space_fusion (per-scale curvatures)  shape={fused.shape}")
+
+    # 3b. Regression check, using the actual scenario found on the real trained
+    # checkpoint: a low-curvature branch (large own-ball radius, e.g. the global
+    # scale, c1=0.5 -> radius 1.414) can produce points past a higher-curvature
+    # fusion ball's own (smaller) radius (c_fuse=0.9 -> radius 1.054) — exactly what
+    # was measured (h_global max norm 1.242 > fusion radius 1.012 on
+    # nano_wecm1_sw_lr3e4). Such a point must be logmap0'd under its OWN curvature
+    # (c1), not silently clamped under the mismatched fusion curvature.
+    big_global = expmap0(torch.ones(1, D) * 3.0, c1)   # pushed near c1's own ball radius
+    big_global_norm = big_global.norm().item()
+    fusion_ball_radius = 1.0 / c_fuse.sqrt().item()
+    assert big_global_norm > fusion_ball_radius, \
+        "test setup should produce a point past the fusion ball's own radius"
+    t_correct = logmap0(big_global, c1)       # correct: own curvature
+    t_wrong   = logmap0(big_global, c_fuse)   # old buggy behaviour: fusion curvature
+    assert not torch.allclose(t_correct, t_wrong), \
+        "own-curvature and fusion-curvature logmap0 should differ for this point"
+    print(f"[OK] cross-curvature fix verified: point past fusion-ball radius "
+          f"({big_global_norm:.3f} > {fusion_ball_radius:.3f}) maps differently "
+          f"under its own curvature vs. the old shared-curvature bug")
 
     # 4. CurvatureParam — positive and has is_curvature flag
     cp = CurvatureParam(init_c=1.0)
