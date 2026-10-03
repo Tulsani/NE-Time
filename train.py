@@ -473,6 +473,13 @@ def parse_args():
                         'expmap0/logmap0 mapping and tangent-space fusion are replaced by '
                         'identity / a plain weighted sum, isolating the effect of the '
                         'hyperbolic geometry itself from the rest of the design.')
+    p.add_argument('--distance_attn', type=str, default='on', choices=['on', 'off'],
+                   help="'off' ablates HyperbolicDistanceAttention entirely (reverts to the "
+                        "original pointwise-only encode-fuse-decode path). 'on' (default) "
+                        'adds relational patch-to-patch mixing weighted by hyp_distance '
+                        '(or squared Euclidean distance under --geometry euclidean) within '
+                        'each scale, before fusion. See hyperbolic_ops.py:'
+                        'HyperbolicDistanceAttention and Documentation/hyperbolic-bug.md.')
     p.add_argument('--decomposer', type=str, default='fixed_ma',
                    choices=['fixed_ma', 'none'],
                    help="'none' is the decomposer-ablation control: all three scale "
@@ -544,6 +551,7 @@ def build_model(args, input_dim: int, horizon: int) -> HyperTimeV2:
         c_local_init  = getattr(args, 'c_local_init', 2.0),
         enc_out_init_std = getattr(args, 'enc_out_init_std', 0.01),
         use_decomposer = (getattr(args, 'decomposer', 'fixed_ma') == 'fixed_ma'),
+        use_distance_attn = (getattr(args, 'distance_attn', 'on') == 'on'),
         **model_cfg,
     )
 

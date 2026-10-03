@@ -57,6 +57,7 @@ C_MESO_INIT=${C_MESO_INIT:-1.0}
 C_LOCAL_INIT=${C_LOCAL_INIT:-2.0}
 ENC_OUT_INIT_STD=${ENC_OUT_INIT_STD:-0.01}
 DECOMPOSER=${DECOMPOSER:-fixed_ma}
+DISTANCE_ATTN=${DISTANCE_ATTN:-on}
 SEED=${SEED:-42}
 
 # Overfitting-fix knobs (see train.py / model_no_attn_upd.py for details)
@@ -97,6 +98,7 @@ echo "Geometry:            ${GEOMETRY}"
 echo "Curvature inits (g/m/l): ${C_GLOBAL_INIT} / ${C_MESO_INIT} / ${C_LOCAL_INIT}"
 echo "Enc out_init_std:    ${ENC_OUT_INIT_STD}"
 echo "Decomposer:          ${DECOMPOSER}"
+echo "Distance attn:       ${DISTANCE_ATTN}"
 echo "Seed:                ${SEED}"
 echo "Exp name:            ${EXP_NAME}"
 echo "--- overfitting fixes ---"
@@ -168,6 +170,7 @@ python train_foundation.py \
     --c_local_init       ${C_LOCAL_INIT} \
     --enc_out_init_std   ${ENC_OUT_INIT_STD} \
     --decomposer         ${DECOMPOSER} \
+    --distance_attn      ${DISTANCE_ATTN} \
     --seed               ${SEED} \
     --exp_name           ${EXP_NAME} \
     --output_dir         ${PROJECT_DIR}/outputs_foundation \

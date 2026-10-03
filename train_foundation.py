@@ -148,6 +148,9 @@ def parse_args():
     p.add_argument('--decomposer', type=str, default='fixed_ma',
                     choices=['fixed_ma', 'none'],
                     help='none = decomposer-ablation control. See train.py --decomposer help.')
+    p.add_argument('--distance_attn', type=str, default='on', choices=['on', 'off'],
+                    help='off = ablate HyperbolicDistanceAttention. See train.py '
+                         '--distance_attn help.')
     p.add_argument('--c_global_init', type=float, default=0.5)
     p.add_argument('--c_meso_init',   type=float, default=1.0)
     p.add_argument('--c_local_init',  type=float, default=2.0)

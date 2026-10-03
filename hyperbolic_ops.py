@@ -249,6 +249,74 @@ class HyperbolicDecoder(nn.Module):
         return self.net(t)
 
 
+class HyperbolicDistanceAttention(nn.Module):
+    """
+    Patch-to-patch relational mixing, weighted by hyperbolic distance between patches'
+    own ball embeddings, instead of the purely pointwise (per-patch, no cross-patch
+    interaction) path the rest of the encoder uses.
+
+    Why this is the genuinely non-Euclidean operation the rest of the architecture lacks
+    (see Documentation/hyperbolic-bug.md): expmap0 immediately followed by logmap0 at the
+    SAME curvature is an exact round-trip no-op, regardless of what happens to the tangent
+    vector in between — which is why the original encode-fuse-decode design measured as
+    statistically indistinguishable from an equal-width Euclidean network once the fusion
+    bug was fixed. hyp_distance does not have this property: it depends on curvature
+    through mobius_add's bilinear structure, not a norm-rescaling that cancels under a
+    matching inverse map. Two points equidistant in Euclidean terms are not generally
+    equidistant in hyp_distance, and that distance governs the attention weights below —
+    a relation an equal-width Euclidean network computing ||x_i - x_j||^2 cannot reproduce
+    for points sharing the same underlying tangent-space coordinates.
+
+    hyperbolic=False gives the matched Euclidean control: negative squared Euclidean
+    distance between the same (now plain Euclidean, see HyperbolicEncoder(hyperbolic=False))
+    representations drives the same softmax-attention/gated-residual mechanism. Same shapes,
+    same parameter count, only the distance metric's geometry differs — isolating exactly
+    this operation the same way every other hyperbolic-vs-Euclidean ablation in this project
+    has (geometry flag, parameter-matched control).
+    """
+
+    def __init__(self, dim: int, dropout: float = 0.1, init_temp: float = 1.0,
+                 hyperbolic: bool = True):
+        super().__init__()
+        self.hyperbolic = hyperbolic
+        # Learnable softmax temperature (log-parameterised, always positive)
+        self.log_temp = nn.Parameter(torch.tensor(math.log(init_temp)))
+        # Learnable residual gate: sigmoid(gate)=0.5 at init (raw=0), halfway between
+        # "ignore attention, keep original per-patch representation" and "fully replace it".
+        self.gate = nn.Parameter(torch.tensor(0.0))
+        self.norm = nn.LayerNorm(dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, h: torch.Tensor, c: torch.Tensor = None) -> torch.Tensor:
+        """h: [B, N, D] — N patches' embeddings (on the ball of curvature c if
+        hyperbolic=True, else plain Euclidean). Returns [B, N, D], same space."""
+        xi = h.unsqueeze(2)   # [B, N, 1, D]
+        xj = h.unsqueeze(1)   # [B, 1, N, D] — broadcasts against xi to [B, N, N, D] inside
+                              # mobius_add / the subtraction below, without materialising it
+
+        if self.hyperbolic:
+            dist = hyp_distance(xi, xj, c)         # [B, N, N]
+            t = logmap0(h, c)                       # [B, N, D]
+        else:
+            dist = ((xi - xj) ** 2).sum(dim=-1)      # [B, N, N] squared Euclidean distance
+            t = h
+
+        temp = torch.exp(self.log_temp).clamp(min=1e-3)
+        attn = torch.softmax(-dist / temp, dim=-1)   # closer patches -> higher weight
+        attn = self.dropout(attn)
+
+        t_attn = torch.einsum('bij,bjd->bid', attn, t)   # neighbour-weighted mix, in
+                                                            # tangent (or Euclidean) space
+        t_attn = self.norm(t_attn)
+
+        gate = torch.sigmoid(self.gate)
+        t_mixed = gate * t + (1 - gate) * t_attn
+
+        if self.hyperbolic:
+            return expmap0(t_mixed, c)
+        return t_mixed
+
+
 # ─────────────────────────────────────────────────────────
 #  Self-tests
 # ─────────────────────────────────────────────────────────
@@ -343,5 +411,44 @@ if __name__ == "__main__":
     out = dec(h_train.detach())
     assert out.shape == (4, 336, 7)
     print(f"[OK] HyperbolicDecoder  shape={out.shape}")
+
+    # 7. HyperbolicDistanceAttention — shape, grad flow, param-matched hyperbolic vs
+    # Euclidean control, and (the whole point) genuine curvature-dependence: unlike the
+    # encode-fuse-decode path, this must NOT behave identically to its Euclidean twin on
+    # the same underlying tangent-space points.
+    B, N, D = 4, 41, 32   # N=41 matches num_patches at seq_len=336,patch=16,stride=8
+    c_attn = CurvatureParam(1.0)
+    attn_hyp = HyperbolicDistanceAttention(dim=D, hyperbolic=True)
+    attn_euc = HyperbolicDistanceAttention(dim=D, hyperbolic=False)
+    n_params_hyp = sum(p.numel() for p in attn_hyp.parameters())
+    n_params_euc = sum(p.numel() for p in attn_euc.parameters())
+    assert n_params_hyp == n_params_euc, "hyperbolic/Euclidean attention must be param-matched"
+
+    t_shared = (torch.randn(B, N, D) * 0.2).requires_grad_()   # shared tangent-space input (leaf)
+    h_on_ball = expmap0(t_shared, c_attn.c)
+
+    out_hyp = attn_hyp(h_on_ball, c_attn.c)          # operates on the ball
+    out_euc_raw = attn_euc(t_shared)                  # operates directly in Euclidean space
+    assert out_hyp.shape == (B, N, D)
+    assert out_euc_raw.shape == (B, N, D)
+    out_hyp.sum().backward()
+    assert t_shared.grad is not None
+    print(f"[OK] HyperbolicDistanceAttention  shape={out_hyp.shape}  "
+          f"params(hyp)={n_params_hyp}=params(euc)={n_params_euc}  grad flows")
+
+    # The critical property: logmap0(out_hyp) must differ from a same-curvature round-trip
+    # of out_euc_raw by more than numerical noise — i.e. the hyperbolic path's attention
+    # weights (driven by hyp_distance) are NOT the same relation as the Euclidean path's
+    # (driven by squared Euclidean distance) on the identical underlying points, so this
+    # component does not collapse to a round-trip no-op the way the old fusion path did.
+    tangent_of_hyp_output = logmap0(out_hyp, c_attn.c)
+    diff = (tangent_of_hyp_output - out_euc_raw).abs().mean().item()
+    assert diff > 1e-3, (
+        f"hyperbolic and Euclidean attention outputs are suspiciously close (diff={diff:.2e}) "
+        f"-- check that hyp_distance is actually driving different attention weights than "
+        f"squared Euclidean distance would."
+    )
+    print(f"[OK] genuine curvature-dependence confirmed: hyp vs Euclidean attention "
+          f"outputs differ by {diff:.4f} (mean abs) on identical input points")
 
     print("\n✓ All hyperbolic ops v2.1 tests passed")

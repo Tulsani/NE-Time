@@ -17,6 +17,7 @@ from hyperbolic_ops import (
     CurvatureParam,
     HyperbolicEncoder,
     HyperbolicDecoder,
+    HyperbolicDistanceAttention,
     tangent_space_fusion,
 )
 from decomposition_upd import RevIN, PatchEmbedding, MultiScaleDecomposer, FixedMADecomposer
@@ -177,6 +178,8 @@ class HyperTimeV2(nn.Module):
         geometry:       str   = 'hyperbolic',  # 'hyperbolic' | 'euclidean' (ablation control)
         enc_out_init_std: float = 0.01,  # NEW: "stronger geometry bias" ablation lever
         use_decomposer: bool  = True,   # NEW: decomposer ablation control (see encode_patches)
+        use_distance_attn: bool = True,  # NEW: hyperbolic-distance patch attention (Option B
+                                          # redesign — see Documentation/hyperbolic-bug.md)
     ):
         super().__init__()
 
@@ -184,7 +187,9 @@ class HyperTimeV2(nn.Module):
             f"geometry must be 'hyperbolic' or 'euclidean', got {geometry!r}"
         self.geometry = geometry
         use_hyp = (geometry == 'hyperbolic')
+        self.use_hyp = use_hyp
         self.use_decomposer = use_decomposer
+        self.use_distance_attn = use_distance_attn
 
         self.input_dim    = input_dim
         self.seq_len      = seq_len
@@ -232,6 +237,17 @@ class HyperTimeV2(nn.Module):
             d_model, hyp_hidden_dim, hyp_dim, self.c_local,
             dropout=dropout, geo_dropout=geo_dropout, hyperbolic=use_hyp,
             out_init_std=enc_out_init_std)
+
+        # 5b. Hyperbolic-distance patch attention (Option B redesign). Unlike everything
+        # else in this encoder, this is relational across patches (N x N), not pointwise —
+        # and unlike the old encode-fuse-decode path, it does not round-trip to a no-op,
+        # because hyp_distance's dependence on curvature doesn't cancel the way a matched
+        # expmap0/logmap0 pair does. See HyperbolicDistanceAttention's docstring and
+        # Documentation/hyperbolic-bug.md for why this specifically was missing before.
+        if self.use_distance_attn:
+            self.attn_global = HyperbolicDistanceAttention(hyp_dim, dropout=dropout, hyperbolic=use_hyp)
+            self.attn_meso   = HyperbolicDistanceAttention(hyp_dim, dropout=dropout, hyperbolic=use_hyp)
+            self.attn_local  = HyperbolicDistanceAttention(hyp_dim, dropout=dropout, hyperbolic=use_hyp)
 
         # 6. Horizon encoder
         self.horizon_enc = HorizonEncoder(
@@ -329,6 +345,15 @@ class HyperTimeV2(nn.Module):
         h_meso   = self.enc_meso(m_patches)
         h_local  = self.enc_local(l_patches)
 
+        if self.use_distance_attn:
+            # Relational patch-to-patch mixing within each scale, weighted by hyp_distance
+            # (hyperbolic) or squared Euclidean distance (euclidean control) between
+            # patches' own embeddings — see HyperbolicDistanceAttention. c is ignored by the
+            # module when self.use_hyp is False, passed regardless for a uniform call site.
+            h_global = self.attn_global(h_global, self.c_global.c)
+            h_meso   = self.attn_meso(h_meso, self.c_meso.c)
+            h_local  = self.attn_local(h_local, self.c_local.c)
+
         scale_weights, cond = self.horizon_enc(cond_len, B, x.device)
         scale_weights_exp   = scale_weights.unsqueeze(1).expand(-1, patches.shape[1], -1)
 
@@ -398,6 +423,8 @@ class HyperTimeV2(nn.Module):
                               count(self.c_local)  + count(self.c_fusion),
             'hyp_encoders':   count(self.enc_global) + count(self.enc_meso) +
                               count(self.enc_local),
+            'distance_attn':  (count(self.attn_global) + count(self.attn_meso) +
+                                count(self.attn_local)) if self.use_distance_attn else 0,
             'horizon_enc':    count(self.horizon_enc),
             'hyp_decoder':    count(self.decoder),
             'temporal_proj':  count(self.temporal_proj),

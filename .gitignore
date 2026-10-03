@@ -8,3 +8,4 @@ __pycache__/
 
 # Data (large benchmark CSVs — fetch via download_dataset.py / scripts/download_foundation_data.sh)
 data/
+Documentation/
